@@ -5,6 +5,7 @@ import _pickle
 import math
 from classes.Blockchain import Blockchain
 from classes.Transaction import Transaction
+import time
 
 class BlockchainServer():
     def __init__(self, node_id, port_no, node_timeouts, nodes, port_dict):
@@ -15,6 +16,7 @@ class BlockchainServer():
         self.nodes = nodes
         self.port_dict = port_dict
         self.Blockchain = Blockchain()
+        self.proof = -1
     
     def run(self):
         self.server =  socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,21 +34,27 @@ class BlockchainServer():
             msg = _pickle.loads(conn.recv(2048))
             match msg[0:2]: 
                 case "up":
-                    self.update_proof(msg) 
+                    update_proof_thread = threading.Thread(target=self.update_proof, args=(msg,))
+                    update_proof_thread.start()
                 case "tx":
-                    self.validate_transaction(msg)
-            handle_client_thread = threading.Thread(target=self.handle_client, args=(conn, ))
-            handle_client_thread.start()
+                    update_transaction_thread = threading.Thread(target=self.update_transaction, args=(msg,))
+                    update_transaction_thread.start()
+           
 
 
     def update_proof(self,msg):
         print("updating proof")
 
-    def validate_transaction(self,msg):
+    def update_transaction(self,msg):
         print("validating transaction")
+        prev_block = self.Blockchain.get_previous_block()
         msg = msg.split("|")
         transaction = Transaction(msg[1], msg[2])
         if transaction.validate():
-            print("success")
+            self.Blockchain.add_transaction(transaction)
+            if self.Blockchain.pool_length == 5:
+                print("success")
+                while self.proof == prev_block.proof:
+                    time.sleep(1)
         else: 
             print("reject")

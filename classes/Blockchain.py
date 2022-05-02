@@ -17,6 +17,7 @@ class Blockchain:
         Adds the new Block to the blockchain
         :param block: Block object to be added
         """
+        self.transaction_pool = []
         self.blockchain.append(block)
 
     def get_previous_block(self):
@@ -31,5 +32,15 @@ class Blockchain:
         """
         previous_block = self.get_previous_block()
         return previous_block.current_hash
+    
+    def pool_length(self):
+        len(self.transaction_pool)
+            
+
+    def add_transaction(self, transaction):
+        """
+        adds transaction to the transaction pool
+        """
+        self.transaction_pool.append(transaction)
 
 
