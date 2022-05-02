@@ -20,25 +20,7 @@ class BlockchainMiner:
         self.current_proof = current_proof
 
     def run(self):
-        while True:
-            time.sleep(1)
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                try:
-                    s.connect((HOST, int(self.server_port)))
-                    message = "gp"  # message is "get proof" request command to send to the server
-                    s.sendall(bytes(message, encoding="utf-8"))
-                    s.listen()  # listen for now messages
-                    blockchain_server, address = s.accept()  # accept connection request
-                    received = blockchain_server.recv(4096)
-                    previous_proof = int(received.decode("utf-8"))
-                    if previous_proof != self.current_proof:
-                        new_proof = self.proof_of_work(previous_proof)
-                        message = f"up|{new_proof}"
-                        s.sendall(bytes(message, encoding="utf-8"))
-                    s.close()
-                except Exception as e:
-                    print(f"Miner {self.port} ERROR COMMUNICATING WITH SERVER {self.server_port}")
-                    continue
+        _thread.start_new_thread(self.poll_server())
 
     def proof_of_work(self, previous_proof):
         new_proof = 0
@@ -46,3 +28,48 @@ class BlockchainMiner:
             new_proof += 1
         self.current_proof = new_proof
         return new_proof
+
+    def poll_server(self):
+        while True:
+            time.sleep(1)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                # CONNECT TO SERVER
+                try:
+                    s.connect((HOST, int(self.server_port)))
+                except socket.error as e:
+                    print(f"Miner {self.port} error CONNECTING with server {self.server_port}")
+                    print(f"ERROR {e}")
+                    continue
+
+                # REQUEST CURRENT PROOF OWNED BY SERVER
+                try:
+                    message = "gp"  # message is "get proof" request command to send to the server
+                    s.sendall(bytes(message, encoding="utf-8"))
+                except socket.error as e:
+                    print(f"Miner {self.port} error SENDING REQUEST to server {self.server_port}")
+                    print(f"ERROR {e}")
+                    continue
+
+                # RECEIVE PROOF FROM SERVER
+                try:
+                    s.listen()  # listen for now messages
+                    blockchain_server, address = s.accept()  # accept connection request
+                    received = blockchain_server.recv(4096)
+                    previous_proof = int(received.decode("utf-8"))
+                    if previous_proof != self.current_proof:
+                        new_proof = self.proof_of_work(previous_proof)
+                        message = f"up|{new_proof}"
+
+                        # SEND NEW PROOF TO SERVER
+                        try:
+                            s.sendall(bytes(message, encoding="utf-8"))
+                        except socket.error as e:
+                            print(f"Miner {self.port} error SENDING PROOF to server {self.server_port}")
+                            print(f"ERROR {e}")
+                            continue
+                    s.close()
+                except socket.error as e:
+                    print(f"Miner {self.port} error RECEIVING PROOF to server {self.server_port}")
+                    print(f"ERROR {e}")
+                    continue
+
