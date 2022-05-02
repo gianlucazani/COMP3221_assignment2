@@ -1,4 +1,4 @@
-from assignment2.classes.Block import Block
+from classes.Block import Block
 
 
 class Blockchain:
