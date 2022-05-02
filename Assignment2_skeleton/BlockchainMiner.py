@@ -12,6 +12,7 @@ from assignment2.lib.lib import calculate_hash
 
 HOST = "127.0.0.1"
 
+
 class BlockchainMiner:
     def __init__(self, current_proof, port, server_port):
         self.port = port
