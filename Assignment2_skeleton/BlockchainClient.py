@@ -10,9 +10,9 @@ HOST = "127.0.0.1"
 
 
 class BlockchainClient:
-    def __init__(self, port, server_port):
-        self.port = port
-        self.server_port = server_port
+    def __init__(self, port_no, server_port_no):
+        self.port_no = port_no
+        self.server_port_no = server_port_no
         self.blockchain_json = ""
 
     def run(self):
@@ -39,16 +39,16 @@ class BlockchainClient:
 
             # CONNECT TO SERVER
             try:
-                s.connect((HOST, int(self.server_port)))
+                s.connect((HOST, int(self.server_port_no)))
             except socket.error as e:
-                print(f"Client {self.port} error CONNECTING with server {self.server_port}")
+                print(f"Client {self.port_no} error CONNECTING with server {self.server_port_no}")
                 print(f"ERROR {e}")
 
             # SEND TRANSACTION TO SERVER
             try:
                 s.sendall(bytes(transaction, encoding="utf-8"))
             except socket.error as e:
-                print(f"Client {self.port} error SENDING TRANSACTION to server {self.server_port}")
+                print(f"Client {self.port_no} error SENDING TRANSACTION to server {self.server_port_no}")
                 print(f"ERROR {e}")
 
             # PRINT RESPONSE FROM SERVER ABOUT VALID TRANSACTION
@@ -58,7 +58,7 @@ class BlockchainClient:
                 received = blockchain_server.recv(4096)
                 print(received.decode("utf-8"))
             except socket.error as e:
-                print(f"Client {self.port} error RECEIVING TRANSACTION VALIDATION from server {self.server_port}")
+                print(f"Client {self.port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
                 print(f"ERROR {e}")
 
     def print_blockchain(self):
@@ -72,9 +72,9 @@ class BlockchainClient:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # CONNECT TO SERVER
             try:
-                s.connect((HOST, int(self.server_port)))
+                s.connect((HOST, int(self.server_port_no)))
             except socket.error as e:
-                print(f"Client {self.port} error CONNECTING with server {self.server_port}")
+                print(f"Client {self.port_no} error CONNECTING with server {self.server_port_no}")
                 print(f"ERROR {e}")
 
             # SEND PB REQUEST TO SERVER
@@ -82,7 +82,7 @@ class BlockchainClient:
                 message = "pb"
                 s.sendall(bytes(message, encoding="utf-8"))
             except socket.error as e:
-                print(f"Client {self.port} error SENDING REQUEST to server {self.server_port}")
+                print(f"Client {self.port_no} error SENDING REQUEST to server {self.server_port_no}")
                 print(f"ERROR {e}")
 
             # RECEIVE BLOCKCHAIN AS JSON FROM SERVER
@@ -93,7 +93,7 @@ class BlockchainClient:
                 blockchain_json = received.decode("utf-8")
                 self.blockchain_json = blockchain_json
             except socket.error as e:
-                print(f"Client {self.port} error RECEIVING BLOCKCHAIN from server {self.server_port}")
+                print(f"Client {self.port_no} error RECEIVING BLOCKCHAIN from server {self.server_port_no}")
                 print(f"ERROR {e}")
 
     def close_connection(self):
@@ -110,5 +110,7 @@ class BlockchainClient:
             # HERE IS THE PROBLEM: how to update the blockchain if the server is the only one that can operate on the blockchain?
             # Do we add another command for sending back to my server the updated blockchain (better for synchronization, otherwise the blockchain lock should be shared across server and client)
             # Do we make the blockchain accessible from the client (much more easy but hard to synchronize)
+            # ----
+            # SOLUTION -> The heartbeat is job of the server, not of the client
             pass
 
