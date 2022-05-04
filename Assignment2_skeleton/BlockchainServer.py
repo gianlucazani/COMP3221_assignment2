@@ -11,14 +11,15 @@ HOST = "127.0.0.1"
 
 
 class BlockchainServer:
-    def __init__(self, node_id, port_no, node_timeouts, nodes, port_dict):
+    def __init__(self, node_id, port_no, node_timeouts, nodes, port_dict, genesis_block_proof):
         self.node_id = node_id
         self.port_no = port_no
         self.node_timeouts = node_timeouts
         self.nodes = nodes
         self.port_dict = port_dict
         self.Blockchain = Blockchain()
-        self.proof = -1
+        self.next_proof = -1
+        self.prev_proof = genesis_block_proof
 
     def run(self):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -58,13 +59,18 @@ class BlockchainServer:
             if transaction.validate():
                 # server sends an "Accepted" message to client
                 self.Blockchain.add_transaction(transaction)
-                if self.Blockchain.pool_length == 5:
-                    print("success")
-                    while self.proof == prev_block.proof:
-                        time.sleep(1)
-            else:
+                if self.Blockchain.pool_length >= 5:
+                    self.create_block()
+            else: 
                 # server sends "Rejected" message to client
                 print("reject")
         else:
             # server sends "Rejected" message to client
             print("reject")
+    
+    def create_block(self):
+        if self.Blockchain.pool_length >= 5 and self.next_proof > 0:
+            self.prev_proof = self.next_proof
+            self.next_proof = -1
+            transactions = self.Blockchain.get_five_transactions()
+            
