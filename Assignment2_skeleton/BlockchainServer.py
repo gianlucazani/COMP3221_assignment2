@@ -6,6 +6,7 @@ import math
 from classes.Blockchain import Blockchain
 from classes.Transaction import Transaction
 import time
+from classes.Block import Block
 
 HOST = "127.0.0.1"
 
@@ -41,7 +42,7 @@ class BlockchainServer:
                         update_proof_thread = threading.Thread(target=self.update_proof, args=(msg,))
                         update_proof_thread.start()
                     case "tx":
-                        update_transaction_thread = threading.Thread(target=self.update_transaction, args=(msg,))
+                        update_transaction_thread = threading.Thread(target=self.update_transaction, args=(msg,conn))
                         update_transaction_thread.start()
         except socket.error as e:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
@@ -50,19 +51,18 @@ class BlockchainServer:
     def update_proof(self, msg):
         print("updating proof")
 
-    def update_transaction(self, msg):
+    def update_transaction(self, msg, conn):
         print(f"Server {self.port_no} is validating transaction")
-        prev_block = self.Blockchain.get_previous_block()
         msg = msg.split("|")
         if len(msg) == 3:
             transaction = Transaction(msg[1], msg[2])
             if transaction.validate():
-                # server sends an "Accepted" message to client
+                conn.sendall(b"Accepted")
                 self.Blockchain.add_transaction(transaction)
                 if self.Blockchain.pool_length >= 5:
                     self.create_block()
             else: 
-                # server sends "Rejected" message to client
+                conn.sendall(b"Rejected")
                 print("reject")
         else:
             # server sends "Rejected" message to client
@@ -70,7 +70,8 @@ class BlockchainServer:
     
     def create_block(self):
         if self.Blockchain.pool_length >= 5 and self.next_proof > 0:
+            transactions = self.Blockchain.get_five_transactions()
+            block = Block(self.Blockchain.get_previous_index, transactions, self.next_proof, self.Blockchain.get_previous_block_hash)
+            self.Blockchain.add_new_block(block)
             self.prev_proof = self.next_proof
             self.next_proof = -1
-            transactions = self.Blockchain.get_five_transactions()
-            
