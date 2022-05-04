@@ -49,9 +49,9 @@ class BlockchainMiner:
                     s.listen()  # listen for now messages
                     blockchain_server, address = s.accept()  # accept connection request
                     received = blockchain_server.recv(4096)
-                    previous_proof = int(received.decode("utf-8"))
-                    if previous_proof > 0:
-                        new_proof = self.proof_of_work(previous_proof)
+                    server_proof = int(received.decode("utf-8"))
+                    if server_proof > 0:
+                        new_proof = self.proof_of_work(server_proof)
                         message = f"up|{new_proof}"
 
                         # SEND NEW PROOF TO SERVER
