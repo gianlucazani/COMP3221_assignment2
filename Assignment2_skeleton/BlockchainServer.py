@@ -3,11 +3,11 @@ import threading
 import socket
 import _pickle
 import math
-from classes.Blockchain import Blockchain
-from classes.Transaction import Transaction
+from Blockchain import Blockchain
+from Transaction import Transaction
 import time
-from classes.Block import Block
-from assignment2.lib.lib import calculate_hash
+from Block import Block
+from lib import calculate_hash
 
 
 HOST = "127.0.0.1"
@@ -29,8 +29,8 @@ class BlockchainServer:
         self.server.bind((HOST, int(self.port_no)))
         start_wss_thread = threading.Thread(target=self.start_wss)
         start_wss_thread.start()
-        heartbeat_thread = threading.Thread(target=self.heartbeat)
-        heartbeat_thread.start()
+        # heartbeat_thread = threading.Thread(target=self.heartbeat)
+        # heartbeat_thread.start()
 
 
     def start_wss(self):

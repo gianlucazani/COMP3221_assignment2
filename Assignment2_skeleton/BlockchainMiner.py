@@ -3,7 +3,7 @@ import _thread
 import threading
 import time
 
-from assignment2.lib.lib import calculate_hash
+from lib import calculate_hash
 
 HOST = "127.0.0.1"
 
