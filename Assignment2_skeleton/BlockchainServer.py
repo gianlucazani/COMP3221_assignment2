@@ -27,6 +27,8 @@ class BlockchainServer:
         self.server.bind((HOST, int(self.port_no)))
         start_wss_thread = threading.Thread(target=self.start_wss)
         start_wss_thread.start()
+        heartbeat_thread = threading.Thread(target=self.heartbeat)
+        heartbeat_thread.start()
 
         print("hi from running")
         pass

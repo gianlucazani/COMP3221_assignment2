@@ -11,6 +11,7 @@ class BlockchainMiner:
     def __init__(self, port, server_port):
         self.port = port
         self.server_port = server_port
+        self.find_new
 
     def run(self):
         _thread.start_new_thread(self.poll_server())
