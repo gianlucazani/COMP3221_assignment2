@@ -48,3 +48,14 @@ class Blockchain:
         adds transaction to the transaction pool
         """
         self.transaction_pool.append(transaction)
+
+    def get_five_transactions(self):
+        """
+        Pops the from the transaction pool the first 5 transactions that have to be added into a new block
+        :return: List of transactions as strings in the format tx|sender|content
+        """
+        first_five_transactions = list()
+        for i in range(5):
+            # Remove get_as_string if we decide to handle transactions as normal string and not as objects
+            first_five_transactions.append(self.transaction_pool.pop(0).get_as_string())
+        return first_five_transactions

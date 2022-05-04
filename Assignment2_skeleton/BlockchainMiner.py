@@ -1,11 +1,5 @@
-from _thread import *
-import threading
-import time
 import socket
 import _thread
-import sys
-import json
-import hashlib
 import time
 
 from assignment2.lib.lib import calculate_hash
@@ -51,6 +45,8 @@ class BlockchainMiner:
                     continue
 
                 # RECEIVE PROOF FROM SERVER
+                # If Miner receives a -1 that means that the server already has a next proof to use for the next block
+                # If I receive a positive number, this is the prof from which to compute the next proof
                 try:
                     s.listen()  # listen for now messages
                     blockchain_server, address = s.accept()  # accept connection request
