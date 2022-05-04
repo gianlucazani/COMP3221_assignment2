@@ -13,11 +13,10 @@ class BlockchainClient:
     def __init__(self, port_no, server_port_no):
         self.port_no = port_no
         self.server_port_no = server_port_no
-        self.blockchain_json = ""
+        self.alive = True
 
     def run(self):
-        _thread.start_new_thread(self.heartbeat())
-        while True:
+        while True and self.alive:
             print("Which action do you want to perform?")
             print("1) Transaction [tx|{sender}|{content}]")
             print("2) Print Blockchain [pb]")
@@ -28,7 +27,6 @@ class BlockchainClient:
                     _thread.start_new_thread(self.send_transaction())
                 case "2":
                     _thread.start_new_thread(self.print_blockchain())
-                    print(f"Blockchain JSON: {self.blockchain_json}")
                 case "3":
                     _thread.start_new_thread(self.close_connection())
 
@@ -63,11 +61,7 @@ class BlockchainClient:
 
     def print_blockchain(self):
         """
-        Saves into self.blockchain_json the blockchain as a json string
-        The methods saves the blockchain in a class attribute because it is hard to collect it as a return value
-        after the method is being run by a thread. By saving the value in an attribute it is easier to check differences
-        with other blockchains in the heartbeat process. Moreover, by saving it in an attribute we can use the value
-        as we want (print it, compare, check values inside, ecc...)
+        Asks the server the blockchain as json and prints it at terminal
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # CONNECT TO SERVER
@@ -82,7 +76,7 @@ class BlockchainClient:
                 message = "pb"
                 s.sendall(bytes(message, encoding="utf-8"))
             except socket.error as e:
-                print(f"Client {self.port_no} error SENDING REQUEST to server {self.server_port_no}")
+                print(f"Client {self.port_no} error SENDING PB REQUEST to server {self.server_port_no}")
                 print(f"ERROR {e}")
 
             # RECEIVE BLOCKCHAIN AS JSON FROM SERVER
@@ -91,13 +85,30 @@ class BlockchainClient:
                 blockchain_server, address = s.accept()  # accept connection request
                 received = blockchain_server.recv(4096)
                 blockchain_json = received.decode("utf-8")
-                self.blockchain_json = blockchain_json
+                print(f"BLOCKCHAIN JSON: \n {blockchain_json}")
             except socket.error as e:
                 print(f"Client {self.port_no} error RECEIVING BLOCKCHAIN from server {self.server_port_no}")
                 print(f"ERROR {e}")
 
     def close_connection(self):
-        pass
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # CONNECT TO SERVER
+            try:
+                s.connect((HOST, int(self.server_port_no)))
+            except socket.error as e:
+                print(f"Client {self.port_no} error CONNECTING with server {self.server_port_no}")
+                print(f"ERROR {e}")
+
+            # SEND PB REQUEST TO SERVER
+            try:
+                message = "cc"
+                s.sendall(bytes(message, encoding="utf-8"))
+            except socket.error as e:
+                print(f"Client {self.port_no} error SENDING CC REQUEST to server {self.server_port_no}")
+                print(f"ERROR {e}")
+
+            # CLIENT DIES
+            self.alive = False
 
     def heartbeat(self):
         while True:

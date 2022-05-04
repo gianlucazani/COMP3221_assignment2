@@ -8,10 +8,9 @@ HOST = "127.0.0.1"
 
 
 class BlockchainMiner:
-    def __init__(self, current_proof, port, server_port):
+    def __init__(self, port, server_port):
         self.port = port
         self.server_port = server_port
-        self.current_proof = current_proof
 
     def run(self):
         _thread.start_new_thread(self.poll_server())
@@ -20,7 +19,6 @@ class BlockchainMiner:
         new_proof = 0
         while calculate_hash(new_proof ** 2 - previous_proof ** 2)[:2] != "00":
             new_proof += 1
-        self.current_proof = new_proof
         return new_proof
 
     def poll_server(self):
@@ -51,9 +49,9 @@ class BlockchainMiner:
                     s.listen()  # listen for now messages
                     blockchain_server, address = s.accept()  # accept connection request
                     received = blockchain_server.recv(4096)
-                    previous_proof = int(received.decode("utf-8"))
-                    if previous_proof != self.current_proof:
-                        new_proof = self.proof_of_work(previous_proof)
+                    server_proof = int(received.decode("utf-8"))
+                    if server_proof > 0:
+                        new_proof = self.proof_of_work(server_proof)
                         message = f"up|{new_proof}"
 
                         # SEND NEW PROOF TO SERVER
