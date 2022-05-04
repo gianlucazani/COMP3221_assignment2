@@ -7,6 +7,8 @@ from classes.Blockchain import Blockchain
 from classes.Transaction import Transaction
 import time
 from classes.Block import Block
+from assignment2.lib.lib import calculate_hash
+
 
 HOST = "127.0.0.1"
 
@@ -30,8 +32,6 @@ class BlockchainServer:
         heartbeat_thread = threading.Thread(target=self.heartbeat)
         heartbeat_thread.start()
 
-        print("hi from running")
-        pass
 
     def start_wss(self):
         try:
@@ -41,7 +41,7 @@ class BlockchainServer:
                 msg = _pickle.loads(conn.recv(2048))
                 match msg[0:2]:
                     case "up":
-                        update_proof_thread = threading.Thread(target=self.update_proof, args=(msg,))
+                        update_proof_thread = threading.Thread(target=self.update_proof, args=(msg,conn))
                         update_proof_thread.start()
                     case "tx":
                         update_transaction_thread = threading.Thread(target=self.update_transaction, args=(msg,conn))
@@ -50,8 +50,17 @@ class BlockchainServer:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")
 
-    def update_proof(self, msg):
-        print("updating proof")
+    def update_proof(self, msg, conn):
+        proof = int(msg[3:])
+
+        # validate proof is correct
+        if calculate_hash(proof ** 2 - self.prev_proof ** 2)[:2] == "00":
+            conn.sendall(b"Reward")
+            self.next_proof = proof
+            self.create_block()
+        else:
+            conn.sendall(b"No Reward")
+
 
     def update_transaction(self, msg, conn):
         print(f"Server {self.port_no} is validating transaction")
