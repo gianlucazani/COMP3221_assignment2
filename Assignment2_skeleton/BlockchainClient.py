@@ -110,18 +110,3 @@ class BlockchainClient:
             # CLIENT DIES
             self.alive = False
 
-    def heartbeat(self):
-        while True:
-            time.sleep(5)
-            # send heartbeat to all the peers
-            # collect peers' blockchains (as json)
-            # request blockchain to my server (json)
-            # compare all blockchains and keep the longest
-            # update blockchain
-            # HERE IS THE PROBLEM: how to update the blockchain if the server is the only one that can operate on the blockchain?
-            # Do we add another command for sending back to my server the updated blockchain (better for synchronization, otherwise the blockchain lock should be shared across server and client)
-            # Do we make the blockchain accessible from the client (much more easy but hard to synchronize)
-            # ----
-            # SOLUTION -> The heartbeat is job of the server, not of the client
-            pass
-

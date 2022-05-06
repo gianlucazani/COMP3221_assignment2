@@ -22,7 +22,7 @@ class Heartbeat(threading.Thread):
     def run(self):
         while True:
             time.sleep(5)
-            for destination_port in list(self.port_dict.values()):
+            for peer_id, destination_port in self.port_dict.items():
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                     # SEND HEARTBEAT
@@ -31,7 +31,7 @@ class Heartbeat(threading.Thread):
                         s.connect((HOST, int(destination_port)))
                         s.sendall(bytes(heartbeat, encoding="utf-8"))
                     except socket.error as e:
-                        print(f"Server {self.port_no} error SENDING HEARTBEAT")
+                        print(f"Server {self.port_no} error SENDING HEARTBEAT to {peer_id}")
                         print(f"ERROR {e}")
 
                     # LISTEN FOR PEER'S BLOCKCHAIN JSON
@@ -52,7 +52,7 @@ class Heartbeat(threading.Thread):
     def compare_blockchains(self, other_blockchain_json: str):
         other_blockchain = _pickle.loads(other_blockchain_json)
         if isinstance(other_blockchain, Blockchain):  # if the thing the peer sent me is actually a Blockchain object, then I can comapre it
-            if len(other_blockchain.blockchain) > len(self.blockchain):  # check chains lengths
+            if len(other_blockchain.blockchain) > len(self.blockchain.blockchain):  # check chains lengths
                 self.update_blockchain(other_blockchain)  # keep the longest chain
 
     def update_blockchain(self, new_blockchain):

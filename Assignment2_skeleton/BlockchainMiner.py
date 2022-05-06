@@ -53,7 +53,7 @@ class BlockchainMiner:
         self.port_no = port_no
         self.server_port_no = server_port_no
         self.prev_proof = 100  # genesis block proof
-        self.work_on_next_proof = True
+        # self.work_on_next_proof = True
         self.worker_thread = Worker(self.prev_proof, self.server_port_no)
 
     def run(self):
@@ -66,9 +66,9 @@ class BlockchainMiner:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # CONNECT TO SERVER
                 try:
-                    s.connect((HOST, int(self.server_port)))
+                    s.connect((HOST, int(self.server_port_no)))
                 except socket.error as e:
-                    print(f"Miner {self.port} error CONNECTING with server {self.server_port}")
+                    print(f"Miner {self.port_no} error CONNECTING with server {self.server_port}")
                     print(f"ERROR {e}")
                     continue
 
