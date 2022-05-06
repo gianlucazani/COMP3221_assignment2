@@ -1,4 +1,5 @@
 from multiprocessing import Lock
+import re
 import threading
 import socket
 import _pickle
@@ -13,10 +14,10 @@ HOST = "127.0.0.1"
 
 
 class Heartbeat(threading.Thread):
-    def __init__(self, port_no: int, blockchain: Blockchain, port_dict: dict, lock):
+    def __init__(self, port_no: int, server, port_dict: dict, lock):
         super(Heartbeat, self).__init__()
         self.port_no = port_no
-        self.blockchain = blockchain
+        self.server = server
         self.port_dict = port_dict
         self.blockchain_lock = lock
 
@@ -52,11 +53,14 @@ class Heartbeat(threading.Thread):
         other_blockchain = _pickle.loads(other_blockchain_json)
         if isinstance(other_blockchain,
                       Blockchain):  # if the thing the peer sent me is actually a Blockchain object, then I can comapre it
-            if len(other_blockchain.blockchain) > len(self.blockchain.blockchain):  # check chains lengths
+            if len(other_blockchain.blockchain) > len(self.server.Blockchain.blockchain):  # check chains lengths
                 self.update_blockchain(other_blockchain)  # keep the longest chain
 
+
     def update_blockchain(self, new_blockchain):
-        self.blockchain = new_blockchain
+        self.server.Blockchain = new_blockchain
+        self.server.prev_proof = self.server.next_proof
+        self.server.next_proof = -1
 
 
 class BlockchainServer(threading.Thread):
@@ -71,10 +75,10 @@ class BlockchainServer(threading.Thread):
         self.next_proof = -1
         self.prev_proof = genesis_block_proof
         self.blockchain_lock = Lock()
-        self.heartbeat_thread = Heartbeat(port_no, self.Blockchain, port_dict, self.blockchain_lock)
 
 
     def run(self):
+        self.heartbeat_thread = Heartbeat(self.port_no, self, self.port_dict, self.blockchain_lock)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((HOST, int(self.port_no)))
         start_wss_thread = threading.Thread(target=self.start_wss)
