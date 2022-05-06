@@ -64,3 +64,20 @@ class Blockchain:
             # Remove get_as_string if we decide to handle transactions as normal string and not as objects
             first_five_transactions.append(self.transaction_pool.pop(0).get_as_string())
         return first_five_transactions
+
+    def blockchain_string(self):
+        result = "TRANSACTIONS IN THE POOL:" + "\n"
+        for transaction in self.transaction_pool:
+            result += transaction + "\n"
+
+        result += "CHAIN:" + "\n"
+        for block in self.blockchain:
+            result += f"Index: {block.index} \n"
+            result += f"Timestamp: {block.timestamp} \n"
+            result += f"Transactions: {block.transactions} \n"
+            result += f"Proof: {block.proof} \n"
+            result += f"Previous hash: {block.previous_hash} \n"
+            result += f"Current hash: {block.current_hash} \n"
+            result += "\n"
+
+        return result
