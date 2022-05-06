@@ -48,6 +48,7 @@ class Blockchain:
         adds transaction to the transaction pool
         """
         self.transaction_pool.append(transaction)
+        # sort transactions in pool based on timestamp
 
     def get_five_transactions(self):
         """

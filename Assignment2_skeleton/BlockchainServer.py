@@ -62,7 +62,7 @@ class BlockchainServer:
             conn.sendall(b"No Reward")
 
 
-    def update_transaction(self, msg, conn):
+    def update_transaction(self, msg, conn): 
         print(f"Server {self.port_no} is validating transaction")
         msg = msg.split("|")
         if len(msg) == 3:
@@ -70,7 +70,7 @@ class BlockchainServer:
             if transaction.validate():
                 conn.sendall(b"Accepted")
                 self.Blockchain.add_transaction(transaction)
-                if self.Blockchain.pool_length >= 5:
+                if self.Blockchain.pool_length() >= 5:
                     self.create_block()
             else: 
                 conn.sendall(b"Rejected")
@@ -82,7 +82,7 @@ class BlockchainServer:
     def create_block(self):
         if self.Blockchain.pool_length >= 5 and self.next_proof > 0:
             transactions = self.Blockchain.get_five_transactions()
-            block = Block(self.Blockchain.get_previous_index, transactions, self.next_proof, self.Blockchain.get_previous_block_hash)
+            block = Block(self.Blockchain.get_previous_index+1, transactions, self.next_proof, self.Blockchain.get_previous_block_hash())
             self.Blockchain.add_new_block(block)
             self.prev_proof = self.next_proof
             self.next_proof = -1
