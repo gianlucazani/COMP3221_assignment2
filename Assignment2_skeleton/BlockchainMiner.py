@@ -66,7 +66,7 @@ class BlockchainMiner(threading.Thread):
 
     def poll_server(self):
         dead_server_counter = 0
-        while True and self.alive:
+        while self.alive:
             time.sleep(1)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # CONNECT TO SERVER

@@ -18,7 +18,7 @@ class BlockchainClient(threading.Thread):
         self.alive = True
 
     def run(self):
-        while True and self.alive:
+        while self.alive:
             print("Which action do you want to perform?")
             print("1) Transaction [tx|{sender}|{content}]")
             print("2) Print Blockchain [pb]")
