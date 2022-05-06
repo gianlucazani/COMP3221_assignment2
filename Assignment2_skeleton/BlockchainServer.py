@@ -86,6 +86,9 @@ class BlockchainServer(threading.Thread):
                 conn, address = self.server.accept()
                 msg = (conn.recv(2048)).decode("utf-8")
                 match msg[0:2]:
+                    case "gp":
+                        get_proof_thread = threading.Thread(target=self.get_proof, args=(conn,))
+                        get_proof_thread.start()
                     case "up":
                         update_proof_thread = threading.Thread(target=self.update_proof, args=(msg, conn))
                         update_proof_thread.start()
@@ -98,6 +101,13 @@ class BlockchainServer(threading.Thread):
         except socket.error as e:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")
+
+    def get_proof(self,conn):
+        payload = {
+            "prev_proof": self.Blockchain.get_previous_proof(),
+            "next_proof": self.next_proof 
+        }
+        conn.sendall(_pickle.dumps(payload))
 
     def update_proof(self, msg, conn):
         proof = int(msg[3:])

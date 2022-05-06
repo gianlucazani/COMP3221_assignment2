@@ -50,6 +50,10 @@ class Blockchain:
         self.transaction_pool.append(transaction)
         # sort transactions in pool based on timestamp
 
+    def get_previous_proof(self):
+        previous_block = self.get_previous_block()
+        return previous_block.proof
+
     def get_five_transactions(self):
         """
         Pops the from the transaction pool the first 5 transactions that have to be added into a new block
