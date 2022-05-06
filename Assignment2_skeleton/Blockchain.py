@@ -68,7 +68,7 @@ class Blockchain:
     def blockchain_string(self):
         result = "TRANSACTIONS IN THE POOL:" + "\n"
         for transaction in self.transaction_pool:
-            result += transaction + "\n"
+            result += transaction.get_as_string() + "\n"
 
         result += "CHAIN:" + "\n"
         for block in self.blockchain:
