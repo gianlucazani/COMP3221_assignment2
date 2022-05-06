@@ -65,7 +65,6 @@ class BlockchainClient(threading.Thread):
         Asks the server the blockchain as json and prints it at terminal
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((HOST,self.port_no))
             # CONNECT TO SERVER
             try:
                 s.connect((HOST, int(self.server_port_no)))
@@ -83,9 +82,7 @@ class BlockchainClient(threading.Thread):
 
             # RECEIVE BLOCKCHAIN AS JSON FROM SERVER
             try:
-                s.listen()  # listen for now messages
-                blockchain_server, address = s.accept()  # accept connection request
-                received = blockchain_server.recv(4096)
+                received = s.recv(4096)
                 blockchain_json = received.decode("utf-8")
                 print(f"BLOCKCHAIN JSON: \n {blockchain_json}")
             except socket.error as e:
