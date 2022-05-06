@@ -96,7 +96,7 @@ class BlockchainServer:
         except socket.error as e:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")
-            
+
     def update_proof(self, msg, conn):
         proof = int(msg[3:])
 
@@ -126,9 +126,9 @@ class BlockchainServer:
             print("reject")
 
     def create_block(self):
-        if self.Blockchain.pool_length >= 5 and self.next_proof > 0:
+        if self.Blockchain.pool_length() >= 5 and self.next_proof > 0:
             transactions = self.Blockchain.get_five_transactions()
-            block = Block(self.Blockchain.get_previous_index+1, transactions, self.next_proof, self.Blockchain.get_previous_block_hash())
+            block = Block(self.Blockchain.get_previous_index() + 1, transactions, self.next_proof, self.Blockchain.get_previous_block_hash())
             self.Blockchain.add_new_block(block)
             self.prev_proof = self.next_proof
             self.next_proof = -1
