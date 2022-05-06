@@ -36,6 +36,10 @@ class Worker(threading.Thread):
                         if self.running:  # if at this point you're still running, you can send the next_proof back to the server
                             s.sendall(bytes(message, encoding="utf-8"))
                             self.pause()  # pause myself and wait for the miner to activate me at the next "gp"
+                            s.listen()
+                            server, address = s.accept(4096)
+                            received = server.recv()
+                            print(received.decode("utf-8"))
                     except socket.error as e:
                         print(f"Miner error SENDING PROOF to server {self.server_port_no}")
                         print(f"ERROR {e}")
