@@ -96,7 +96,7 @@ class BlockchainServer:
         except socket.error as e:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")
-
+            
     def update_proof(self, msg, conn):
         proof = int(msg[3:])
 
