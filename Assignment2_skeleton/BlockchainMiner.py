@@ -62,7 +62,8 @@ class BlockchainMiner(threading.Thread):
 
     def run(self):
         self.worker_thread.start()  # will not work on a new proof at the start, will start working for the first time after the first "gp" signal
-        _thread.start_new_thread(self.poll_server())
+        poll_server_thread = threading.Thread(target=self.poll_server)
+        poll_server_thread.start()
 
     def poll_server(self):
         dead_server_counter = 0

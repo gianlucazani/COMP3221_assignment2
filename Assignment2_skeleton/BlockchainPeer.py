@@ -3,6 +3,7 @@ from BlockchainMiner import BlockchainMiner
 from BlockchainServer import BlockchainServer
 from BlockchainClient import BlockchainClient
 import sys
+import os
 
 
 
@@ -35,6 +36,11 @@ class BlockchainPeer():
         blockchain_server_thread.start()
         blockchain_miner_thread.start()
         blockchain_client_thread.start()
+        while blockchain_client_thread.alive and blockchain_miner_thread.alive and blockchain_server_thread.alive:
+            pass
+        print(f"Peer {self.node_id} terminated successfully")
+        os._exit(1)
+
 
 peer = BlockchainPeer()
 peer.run()
