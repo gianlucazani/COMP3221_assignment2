@@ -58,19 +58,26 @@ class BlockchainMiner(threading.Thread):
         self.prev_proof = 100  # genesis block proof
         # self.work_on_next_proof = True
         self.worker_thread = Worker(self.prev_proof, self.server_port_no)
+        self.alive = True
 
     def run(self):
         self.worker_thread.start()  # will not work on a new proof at the start, will start working for the first time after the first "gp" signal
         _thread.start_new_thread(self.poll_server())
 
     def poll_server(self):
-        while True:
+        dead_server_counter = 0
+        while self.alive:
             time.sleep(1)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # CONNECT TO SERVER
                 try:
                     s.connect((HOST, int(self.server_port_no)))
                 except socket.error as e:
+                    dead_server_counter += 1
+                    if dead_server_counter > 2:
+                        self.alive = False
+                        self.worker_thread.pause()
+                        continue
                     print(f"Miner {self.port_no} error CONNECTING with server {self.server_port_no}")
                     print(f"ERROR {e}")
                     continue
