@@ -24,7 +24,6 @@ class Heartbeat(threading.Thread):
             time.sleep(5)
             for peer_id, destination_port in self.port_dict.items():
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-
                     # SEND HEARTBEAT
                     heartbeat = "hb"
                     try:
@@ -36,21 +35,21 @@ class Heartbeat(threading.Thread):
 
                     # LISTEN FOR PEER'S BLOCKCHAIN JSON
                     try:
-                        s.listen()
-                        peer, address = s.accept()
-                        received = peer.recv(4096)
-                        received_blockchain_json = received.decode()
+                        received = s.recv(4096)
+                        received_blockchain_json = received
                     except socket.error as e:
-                        print(f"Server {self.port} error RECEIVING BLOCKCHAIN JSON in HB from {destination_port}")
+                        print(f"Server {self.port_no} error RECEIVING BLOCKCHAIN JSON in HB from {destination_port}")
                         print(f"ERROR {e}")
                         continue
-
-                    # HELLO GEN!! ACQUIRE LOCK HERE <--------------------------------------------------------------------
-                    self.compare_blockchains(received_blockchain_json)
-                    # RELEASE LOCK HERE
+                    
+                    if received_blockchain_json:
+                        # HELLO GEN!! ACQUIRE LOCK HERE <--------------------------------------------------------------------
+                        self.compare_blockchains(received_blockchain_json)
+                        # RELEASE LOCK HERE
 
     def compare_blockchains(self, other_blockchain_json: str):
         other_blockchain = _pickle.loads(other_blockchain_json)
+        print(other_blockchain)
         if isinstance(other_blockchain, Blockchain):  # if the thing the peer sent me is actually a Blockchain object, then I can comapre it
             if len(other_blockchain.blockchain) > len(self.blockchain.blockchain):  # check chains lengths
                 self.update_blockchain(other_blockchain)  # keep the longest chain
@@ -59,8 +58,9 @@ class Heartbeat(threading.Thread):
         self.blockchain = new_blockchain
 
 
-class BlockchainServer:
+class BlockchainServer(threading.Thread):
     def __init__(self, node_id: int, port_no: int, node_timeouts, nodes, port_dict, genesis_block_proof: int):
+        super().__init__()
         self.node_id = node_id
         self.port_no = port_no
         self.node_timeouts = node_timeouts
@@ -77,15 +77,14 @@ class BlockchainServer:
         start_wss_thread = threading.Thread(target=self.start_wss)
         start_wss_thread.start()
         self.heartbeat_thread.start()
-        # heartbeat_thread = threading.Thread(target=self.heartbeat)
-        # heartbeat_thread.start()
+
 
     def start_wss(self):
         try:
             self.server.listen()
             while True:
                 conn, address = self.server.accept()
-                msg = _pickle.loads(conn.recv(2048))
+                msg = (conn.recv(2048)).decode("utf-8")
                 match msg[0:2]:
                     case "up":
                         update_proof_thread = threading.Thread(target=self.update_proof, args=(msg, conn))
@@ -93,6 +92,9 @@ class BlockchainServer:
                     case "tx":
                         update_transaction_thread = threading.Thread(target=self.update_transaction, args=(msg, conn))
                         update_transaction_thread.start()
+                    case "hb":
+                        blockchain_json = _pickle.dumps(self.Blockchain)
+                        conn.sendall(blockchain_json)
         except socket.error as e:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")
@@ -110,21 +112,27 @@ class BlockchainServer:
 
     def update_transaction(self, msg, conn):
         print(f"Server {self.port_no} is validating transaction")
-        msg = msg.split("|")
-        if len(msg) == 3:
-            transaction = Transaction(msg[1], msg[2])
-            if transaction.validate():
-                conn.sendall(b"Accepted")
-                self.Blockchain.add_transaction(transaction)
-                if self.Blockchain.pool_length() >= 5:
-                    self.create_block()
+        try:
+            msg = msg.split("|")
+            if len(msg) == 3:
+                transaction = Transaction(msg[1], msg[2])
+                try:
+                    if transaction.validate():
+                        conn.sendall(b"Accepted")
+                        self.Blockchain.add_transaction(transaction)
+                        if self.Blockchain.pool_length() >= 5:
+                            self.create_block()
+                    else:
+                        conn.sendall(b"Rejected")
+                except socket.error as e: 
+                    print(f"Server {self.port_no} error SENDING transaction validation to {conn}")
+                    print(f"ERROR {e}")
             else:
+                # server sends "Rejected" message to client
                 conn.sendall(b"Rejected")
                 print("reject")
-        else:
-            # server sends "Rejected" message to client
-            conn.sendall(b"Rejected")
-            print("reject")
+        except Exception as e: 
+            print(e)
 
     def create_block(self):
         if self.Blockchain.pool_length() >= 5 and self.next_proof > 0:

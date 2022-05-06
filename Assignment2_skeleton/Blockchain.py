@@ -34,7 +34,7 @@ class Blockchain:
         return previous_block.current_hash
 
     def pool_length(self):
-        len(self.transaction_pool)
+        return len(self.transaction_pool)
 
     def get_previous_index(self):
         """

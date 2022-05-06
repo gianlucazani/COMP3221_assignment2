@@ -9,8 +9,9 @@ import json
 HOST = "127.0.0.1"
 
 
-class BlockchainClient:
+class BlockchainClient(threading.Thread):
     def __init__(self, port_no, server_port_no):
+        super().__init__()
         self.port_no = port_no
         self.server_port_no = server_port_no
         self.alive = True
@@ -24,17 +25,19 @@ class BlockchainClient:
             choice = input()
             match choice:
                 case "1":
-                    _thread.start_new_thread(self.send_transaction())
+                    self.send_transaction()
+
                 case "2":
-                    _thread.start_new_thread(self.print_blockchain())
+                    print_blockchain_thread = threading.Thread(target=self.print_blockchain)
+                    print_blockchain_thread.start()
                 case "3":
-                    _thread.start_new_thread(self.close_connection())
+                    close_connection_thread = threading.Thread(target=self.close_connection)
+                    close_connection_thread.start()
 
     def send_transaction(self):
         print("Write the transaction in the format tx|{sender}|{content}")
         transaction = input()
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-
             # CONNECT TO SERVER
             try:
                 s.connect((HOST, int(self.server_port_no)))
@@ -51,9 +54,7 @@ class BlockchainClient:
 
             # PRINT RESPONSE FROM SERVER ABOUT VALID TRANSACTION
             try:
-                s.listen()  # listen for now messages
-                blockchain_server, address = s.accept()  # accept connection request
-                received = blockchain_server.recv(4096)
+                received = s.recv(4096)
                 print(received.decode("utf-8"))
             except socket.error as e:
                 print(f"Client {self.port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
@@ -64,6 +65,7 @@ class BlockchainClient:
         Asks the server the blockchain as json and prints it at terminal
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((HOST,self.port_no))
             # CONNECT TO SERVER
             try:
                 s.connect((HOST, int(self.server_port_no)))

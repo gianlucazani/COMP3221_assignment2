@@ -36,9 +36,7 @@ class Worker(threading.Thread):
                         if self.running:  # if at this point you're still running, you can send the next_proof back to the server
                             s.sendall(bytes(message, encoding="utf-8"))
                             self.pause()  # pause myself and wait for the miner to activate me at the next "gp"
-                            s.listen()
-                            server, address = s.accept(4096)
-                            received = server.recv()
+                            received = s.recv()
                             print(received.decode("utf-8"))
                     except socket.error as e:
                         print(f"Miner error SENDING PROOF to server {self.server_port_no}")
@@ -52,8 +50,9 @@ class Worker(threading.Thread):
         self.running = True
 
 
-class BlockchainMiner:
+class BlockchainMiner(threading.Thread):
     def __init__(self, port_no, server_port_no):
+        super().__init__()
         self.port_no = port_no
         self.server_port_no = server_port_no
         self.prev_proof = 100  # genesis block proof
@@ -72,7 +71,7 @@ class BlockchainMiner:
                 try:
                     s.connect((HOST, int(self.server_port_no)))
                 except socket.error as e:
-                    print(f"Miner {self.port_no} error CONNECTING with server {self.server_port}")
+                    print(f"Miner {self.port_no} error CONNECTING with server {self.server_port_no}")
                     print(f"ERROR {e}")
                     continue
 
@@ -82,16 +81,14 @@ class BlockchainMiner:
                     s.sendall(bytes(message, encoding="utf-8"))
 
                 except socket.error as e:
-                    print(f"Miner {self.port} error SENDING REQUEST to server {self.server_port}")
+                    print(f"Miner {self.port_no} error SENDING REQUEST to server {self.server_port_no}")
                     print(f"ERROR {e}")
                     continue
 
                 # RECEIVE PROOF FROM SERVER
                 try:
-                    s.listen()  # listen for now messages
-                    blockchain_server, address = s.accept()  # accept connection request
-                    received = blockchain_server.recv(4096)
-                    proofs_dictionary = _pickle.loads(received.decode("utf-8"))
+                    received = s.recv(4096)
+                    proofs_dictionary = _pickle.loads(received)
 
                     # The package received from the server is in the format { "prev_proof": int, "next_proof": int (-1 if server needs a next proof)}
                     # CASES:
@@ -115,6 +112,6 @@ class BlockchainMiner:
                         else:
                             self.worker_thread.activate()
                 except socket.error as e:
-                    print(f"Miner {self.port} error RECEIVING PROOF to server {self.server_port}")
+                    print(f"Miner {self.port_no} error RECEIVING PROOF to server {self.server_port_no}")
                     print(f"ERROR {e}")
                     continue
