@@ -33,7 +33,7 @@ class BlockchainPeer():
         blockchain_miner_thread = BlockchainMiner(int(self.port_no)+2, self.port_no)
         blockchain_client_thread = BlockchainClient(int(self.port_no)+4, self.port_no)
         blockchain_server_thread.start()
-        # blockchain_miner_thread.start()
+        blockchain_miner_thread.start()
         blockchain_client_thread.start()
 
 peer = BlockchainPeer()

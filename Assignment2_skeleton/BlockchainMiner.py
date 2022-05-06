@@ -36,7 +36,7 @@ class Worker(threading.Thread):
                         if self.running:  # if at this point you're still running, you can send the next_proof back to the server
                             s.sendall(bytes(message, encoding="utf-8"))
                             self.pause()  # pause myself and wait for the miner to activate me at the next "gp"
-                            received = s.recv()
+                            received = s.recv(4096)
                             print(received.decode("utf-8"))
                     except socket.error as e:
                         print(f"Miner error SENDING PROOF to server {self.server_port_no}")
@@ -101,6 +101,7 @@ class BlockchainMiner(threading.Thread):
                         self.worker_thread.pause()  # pause the worker because there's no need to compute the next proof
                         self.worker_thread.working_on_proof = proofs_dictionary["prev_proof"]
                     elif proofs_dictionary["next_proof"] == -1:  # if D
+                        print(f"starting on working on a new thread. {proofs_dictionary}")
                         # and the prev_proof if different from the one the worker is working on, make the worker work for the next proof
                         if proofs_dictionary["prev_proof"] != self.worker_thread.working_on_proof:
                             self.worker_thread.pause()  # pause worker

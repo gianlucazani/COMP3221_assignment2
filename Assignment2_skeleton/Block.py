@@ -34,5 +34,5 @@ class Block:
         content_to_hash += str(self.proof)
         content_to_hash += self.previous_hash
         for transaction in self.transactions:
-            content_to_hash += transaction.get_as_string()  # will get the transaction in the string format tx|sender|content
+            content_to_hash += transaction  # will get the transaction in the string format tx|sender|content
         self.current_hash = calculate_hash(content_to_hash)

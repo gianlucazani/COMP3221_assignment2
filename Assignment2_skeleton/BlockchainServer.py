@@ -13,11 +13,12 @@ HOST = "127.0.0.1"
 
 
 class Heartbeat(threading.Thread):
-    def __init__(self, port_no: int, blockchain: Blockchain, port_dict: dict):
+    def __init__(self, port_no: int, blockchain: Blockchain, port_dict: dict, lock):
         super(Heartbeat, self).__init__()
         self.port_no = port_no
         self.blockchain = blockchain
         self.port_dict = port_dict
+        self.blockchain_lock = lock
 
     def run(self):
         while True:
@@ -43,13 +44,12 @@ class Heartbeat(threading.Thread):
                         continue
 
                     if received_blockchain_json:
-                        # HELLO GEN!! ACQUIRE LOCK HERE <--------------------------------------------------------------------
+                        self.blockchain_lock.acquire()
                         self.compare_blockchains(received_blockchain_json)
-                        # RELEASE LOCK HERE
+                        self.blockchain_lock.release()
 
     def compare_blockchains(self, other_blockchain_json: str):
         other_blockchain = _pickle.loads(other_blockchain_json)
-        print(other_blockchain)
         if isinstance(other_blockchain,
                       Blockchain):  # if the thing the peer sent me is actually a Blockchain object, then I can comapre it
             if len(other_blockchain.blockchain) > len(self.blockchain.blockchain):  # check chains lengths
@@ -70,7 +70,9 @@ class BlockchainServer(threading.Thread):
         self.Blockchain = Blockchain()
         self.next_proof = -1
         self.prev_proof = genesis_block_proof
-        self.heartbeat_thread = Heartbeat(port_no, self.Blockchain, port_dict)
+        self.blockchain_lock = Lock()
+        self.heartbeat_thread = Heartbeat(port_no, self.Blockchain, port_dict, self.blockchain_lock)
+
 
     def run(self):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -158,10 +160,10 @@ class BlockchainServer(threading.Thread):
     def create_block(self):
         if self.Blockchain.pool_length() >= 5 and self.next_proof > 0:
             transactions = self.Blockchain.get_five_transactions()
-            # need to add a lock here
+            self.blockchain_lock.acquire()
             block = Block(self.Blockchain.get_previous_index() + 1, transactions, self.next_proof,
                           self.Blockchain.get_previous_block_hash())
             self.Blockchain.add_new_block(block)
-            # release lock
+            self.blockchain_lock.release()
             self.prev_proof = self.next_proof
             self.next_proof = -1
