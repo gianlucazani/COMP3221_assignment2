@@ -22,7 +22,7 @@ class Heartbeat(threading.Thread):
         self.blockchain_lock = lock
 
     def run(self):
-        while True:
+        while self.server.alive:
             time.sleep(5)
             for peer_id, destination_port in self.port_dict.items():
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -75,6 +75,7 @@ class BlockchainServer(threading.Thread):
         self.next_proof = -1
         self.prev_proof = genesis_block_proof
         self.blockchain_lock = Lock()
+        self.alive  = True
 
 
     def run(self):
@@ -88,7 +89,7 @@ class BlockchainServer(threading.Thread):
     def start_wss(self):
         try:
             self.server.listen()
-            while True:
+            while self.alive:
                 conn, address = self.server.accept()
                 msg = (conn.recv(2048)).decode("utf-8")
                 match msg[0:2]:
@@ -107,6 +108,9 @@ class BlockchainServer(threading.Thread):
                     case "pb":
                         print_blockchain_thread = threading.Thread(target=self.print_blockchain, args=(msg, conn))
                         print_blockchain_thread.start()
+                    case "cc":
+                        self.server.close()
+                        self.alive = False
         except socket.error as e:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")

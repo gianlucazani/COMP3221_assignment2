@@ -25,13 +25,13 @@ class BlockchainClient(threading.Thread):
             print("3) Close Connection [cc]")
             choice = input()
             match choice:
-                case "1":
+                case "tx":
                     self.send_transaction()
 
-                case "2":
+                case "pb":
                     print_blockchain_thread = threading.Thread(target=self.print_blockchain)
                     print_blockchain_thread.start()
-                case "3":
+                case "cc":
                     close_connection_thread = threading.Thread(target=self.close_connection)
                     close_connection_thread.start()
 
