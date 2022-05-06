@@ -152,7 +152,7 @@ class BlockchainServer(threading.Thread):
         conn.sendall(blockchain_json)
 
     def print_blockchain(self, msg, conn):
-        blockchain_json = _pickle.dumps(self.Blockchain)
+        blockchain_json = _pickle.dumps(self.Blockchain, )
         conn.sendall(blockchain_json)
 
     def create_block(self):

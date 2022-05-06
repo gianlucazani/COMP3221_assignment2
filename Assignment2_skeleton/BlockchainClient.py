@@ -1,3 +1,4 @@
+import _pickle
 from _thread import *
 import threading
 import time
@@ -83,7 +84,7 @@ class BlockchainClient(threading.Thread):
             # RECEIVE BLOCKCHAIN AS JSON FROM SERVER
             try:
                 received = s.recv(4096)
-                blockchain_json = received.decode("utf-8")
+                blockchain_json = _pickle.loads(received)
                 print(f"BLOCKCHAIN JSON: \n {blockchain_json}")
             except socket.error as e:
                 print(f"Client {self.port_no} error RECEIVING BLOCKCHAIN from server {self.server_port_no}")
