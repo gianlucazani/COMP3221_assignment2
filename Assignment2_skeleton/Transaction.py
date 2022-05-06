@@ -5,7 +5,6 @@ class Transaction:
     def __init__(self, sender, content):
         self.sender = sender
         self.content = content
-        self.timestamp = time.time()
         # self.transaction = f"tx|{sender}|{content}"  # will store a string in the format tx|sender|content
 
     def validate(self):

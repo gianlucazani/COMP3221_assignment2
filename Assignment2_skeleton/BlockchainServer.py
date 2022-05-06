@@ -123,12 +123,15 @@ class BlockchainServer:
                 print("reject")
         else:
             # server sends "Rejected" message to client
+            conn.sendall(b"Rejected")
             print("reject")
 
     def create_block(self):
         if self.Blockchain.pool_length() >= 5 and self.next_proof > 0:
             transactions = self.Blockchain.get_five_transactions()
+            # need to add a lock here
             block = Block(self.Blockchain.get_previous_index() + 1, transactions, self.next_proof, self.Blockchain.get_previous_block_hash())
             self.Blockchain.add_new_block(block)
+            # release lock
             self.prev_proof = self.next_proof
             self.next_proof = -1

@@ -29,6 +29,5 @@ class BlockchainPeer():
     def run(self):
         server = BlockchainServer(self.node_id, self.port_no, self.node_timeouts, self.nodes, self.port_dict, GENESIS_BLOCK_PROOF).run()
 
-
 peer = BlockchainPeer()
 peer.run()
