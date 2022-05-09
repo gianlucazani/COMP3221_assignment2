@@ -80,6 +80,7 @@ class Heartbeat(threading.Thread):
         :return: True if all valid, False otherwise
         """
         for block in exceeding_blocks:
+            print(f"block from validate exceeding blocks {block}")
             if not block.is_valid():
                 return False
         return True
@@ -91,7 +92,7 @@ class Heartbeat(threading.Thread):
         :param new_blockchain: Blockchain object
         """
         self.server.Blockchain = new_blockchain
-        self.server.prev_proof = self.server.next_proof
+        self.server.prev_proof = self.server.Blockchain.get_previous_proof()
         self.server.next_proof = -1
 
 
@@ -159,6 +160,7 @@ class BlockchainServer(threading.Thread):
         proof = int(msg[3:])
 
         # validate proof is correct
+        print(f"prev proof from server is: {self.prev_proof}")
         if calculate_hash(proof ** 2 - self.prev_proof ** 2)[:2] == "00":
             conn.sendall(b"Reward")
             self.next_proof = proof

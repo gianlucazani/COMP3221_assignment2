@@ -109,7 +109,7 @@ class BlockchainMiner(threading.Thread):
                         self.worker_thread.pause()  # pause the worker because there's no need to compute the next proof
                         self.worker_thread.working_on_proof = proofs_dictionary["prev_proof"]
                     elif proofs_dictionary["next_proof"] == -1:  # if D
-                        print(f"starting on working on a new thread. {proofs_dictionary}")
+                        print(f"starting on working on a new proof. {proofs_dictionary}")
                         # and the prev_proof if different from the one the worker is working on, make the worker work for the next proof
                         if proofs_dictionary["prev_proof"] != self.worker_thread.working_on_proof:
                             self.worker_thread.pause()  # pause worker

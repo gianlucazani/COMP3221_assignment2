@@ -124,9 +124,3 @@ class BlockchainClient(threading.Thread):
             except socket.error as e:
                 print(f"Client {self.port_no} error SENDING CC REQUEST to server {self.server_port_no}")
                 print(f"ERROR {e}")
-
-            exit()
-            raise SystemExit(0)
-
-
-tr = Transaction()

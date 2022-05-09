@@ -1,5 +1,5 @@
 import time
-from Assignment2_skeleton.Transaction import Transaction
+from Transaction import Transaction
 from lib import calculate_hash
 
 
@@ -40,6 +40,7 @@ class Block:
 
     def is_valid(self):
         for transaction in self.transactions:
-            if not Transaction.validate(transaction):
+            tr = Transaction(transaction.split("|")[1],transaction.split("|")[2])
+            if not tr.validate():
                 return False
         return True
