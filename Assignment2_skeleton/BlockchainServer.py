@@ -102,12 +102,11 @@ class Heartbeat(threading.Thread):
 
 
 class BlockchainServer(threading.Thread):
-    def __init__(self, node_id: str, port_no: int, node_timeouts, nodes, port_dict, genesis_block_proof: int):
+    def __init__(self, node_id: str, port_no: int, node_timeouts, port_dict, genesis_block_proof: int):
         super().__init__()
         self.node_id = node_id
         self.port_no = port_no
         self.node_timeouts = node_timeouts
-        self.nodes = nodes
         self.port_dict = port_dict
         self.Blockchain = Blockchain()
         self.next_proof = -1

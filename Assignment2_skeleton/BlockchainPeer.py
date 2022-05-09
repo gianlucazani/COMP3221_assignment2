@@ -8,7 +8,7 @@ GENESIS_BLOCK_PROOF = 100
 
 
 class BlockchainPeer:
-    def __init__(self, *args):
+    def __init__(self):
         # initialise variables from the command line input
         self.node_id = sys.argv[1]
         self.port_no = int(sys.argv[2])
@@ -19,17 +19,14 @@ class BlockchainPeer:
         f = open(self.config_fp, 'r')
         self.num_adj_nodes = int(f.readline())
 
-        self.nodes = []
-
         for i in range(self.num_adj_nodes):
             _input = f.readline()
             _input = _input.split()
-            self.nodes.append(_input[0])
             self.port_dict[_input[0]] = int(_input[1])
             self.node_timeouts.update({_input[0]: {'ping': time.time(), 'state': True}})
 
     def run(self):
-        blockchain_server_thread = BlockchainServer(self.node_id, self.port_no, self.node_timeouts, self.nodes,
+        blockchain_server_thread = BlockchainServer(self.node_id, self.port_no, self.node_timeouts,
                                                     self.port_dict, GENESIS_BLOCK_PROOF)
         blockchain_miner_thread = BlockchainMiner(self.port_no)
         blockchain_client_thread = BlockchainClient(self.port_no, self.port_dict)
