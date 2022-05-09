@@ -51,9 +51,8 @@ class Worker(threading.Thread):
 
 
 class BlockchainMiner(threading.Thread):
-    def __init__(self, port_no, server_port_no):
+    def __init__(self, server_port_no):
         super().__init__()
-        self.port_no = port_no
         self.server_port_no = server_port_no
         self.prev_proof = 100  # genesis block proof
         # self.work_on_next_proof = True

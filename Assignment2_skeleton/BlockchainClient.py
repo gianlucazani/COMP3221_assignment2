@@ -11,9 +11,8 @@ HOST = "127.0.0.1"
 
 
 class BlockchainClient(threading.Thread):
-    def __init__(self, port_no, server_port_no, port_dict):
+    def __init__(self, server_port_no, port_dict):
         super().__init__()
-        self.port_no = port_no
         self.server_port_no = server_port_no
         self.port_dict = port_dict
         self.alive = True
