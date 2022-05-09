@@ -38,7 +38,7 @@ class Block:
             content_to_hash += transaction  # will get the transaction in the string format tx|sender|content
         self.current_hash = calculate_hash(content_to_hash)
 
-    def validate(self):
+    def is_valid(self):
         for transaction in self.transactions:
             if not Transaction.validate(transaction):
                 return False

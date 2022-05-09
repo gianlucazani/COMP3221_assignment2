@@ -111,3 +111,6 @@ class BlockchainClient(threading.Thread):
 
             exit()
             raise SystemExit(0)
+
+
+tr = Transaction()
