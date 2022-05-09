@@ -14,17 +14,15 @@ HOST = "127.0.0.1"
 
 
 class Heartbeat(threading.Thread):
-    def __init__(self, port_no: int, server, port_dict: dict, lock):
+    def __init__(self, server, lock):
         super(Heartbeat, self).__init__()
-        self.port_no = port_no
         self.server = server
-        self.port_dict = port_dict
         self.blockchain_lock = lock
 
     def run(self):
         while self.server.alive:
             time.sleep(5)
-            for peer_id, destination_port in self.port_dict.items():
+            for peer_id, destination_port in self.server.port_dict.items():
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     # SEND HEARTBEAT
                     heartbeat = "hb"
@@ -32,7 +30,7 @@ class Heartbeat(threading.Thread):
                         s.connect((HOST, int(destination_port)))
                         s.sendall(bytes(heartbeat, encoding="utf-8"))
                     except socket.error as e:
-                        print(f"Server {self.port_no} error SENDING HEARTBEAT to {peer_id}")
+                        print(f"Server {self.server.port_no} error SENDING HEARTBEAT to {peer_id}")
                         print(f"ERROR {e}")
 
                     # LISTEN FOR PEER'S BLOCKCHAIN JSON
@@ -40,7 +38,7 @@ class Heartbeat(threading.Thread):
                         received = s.recv(4096)
                         received_blockchain_json = received
                     except socket.error as e:
-                        print(f"Server {self.port_no} error RECEIVING BLOCKCHAIN JSON in HB from {destination_port}")
+                        print(f"Server {self.server.port_no} error RECEIVING BLOCKCHAIN JSON in HB from {destination_port}")
                         print(f"ERROR {e}")
                         continue
 
@@ -49,15 +47,49 @@ class Heartbeat(threading.Thread):
                         self.compare_blockchains(received_blockchain_json)
                         self.blockchain_lock.release()
 
-    def compare_blockchains(self, other_blockchain_json: str):
+    def compare_blockchains(self, other_blockchain_json):
+        """
+        This method will:
+        1) Compare the received blockchain's length with ours
+        2) If the length is greater, it checks if all the exceeding blocks are valid (valid transactions inside)
+        3) If so, it will update the blockchain with the new, longer one
+        :param other_blockchain_json: received json from server after hb
+        """
         other_blockchain = _pickle.loads(other_blockchain_json)
         if isinstance(other_blockchain,
                       Blockchain):  # if the thing the peer sent me is actually a Blockchain object, then I can comapre it
             if len(other_blockchain.blockchain) > len(self.server.Blockchain.blockchain):  # check chains lengths
-                self.update_blockchain(other_blockchain)  # keep the longest chain
+                exceeding_blocks = self.get_exceeding_blocks(other_blockchain)
+                if self.valid_exceeding_blocks(exceeding_blocks):
+                    self.update_blockchain(other_blockchain)  # keep the longest chain
 
+    def get_exceeding_blocks(self, other_blockchain: Blockchain):
+        """
+        Returns a list of blocks that are the ones existing in the received blockchain but not in ours
+        :param other_blockchain: received Blockchain object
+        :return: list(Block)
+        """
+        length_difference = len(other_blockchain.blockchain) - len(self.server.Blockchain.blockchain)
+        exceeding_blocks = other_blockchain.blockchain[-length_difference:]
+        return exceeding_blocks
 
-    def update_blockchain(self, new_blockchain):
+    def valid_exceeding_blocks(self, exceeding_blocks):
+        """
+        Checks that each exceeding block is valid (all the transactions inside are valid)
+        :param exceeding_blocks: list(Block)
+        :return: True if all valid, False otherwise
+        """
+        for block in exceeding_blocks:
+            if not block.is_valid():
+                return False
+        return True
+
+    def update_blockchain(self, new_blockchain: Blockchain):
+        """
+        Updates our blockchain with the received one, updates server's known prev_proof and next_proof
+        It will update also the transaction pool
+        :param new_blockchain: Blockchain object
+        """
         self.server.Blockchain = new_blockchain
         self.server.prev_proof = self.server.next_proof
         self.server.next_proof = -1
@@ -75,11 +107,10 @@ class BlockchainServer(threading.Thread):
         self.next_proof = -1
         self.prev_proof = genesis_block_proof
         self.blockchain_lock = Lock()
-        self.alive  = True
-
+        self.alive = True
 
     def run(self):
-        self.heartbeat_thread = Heartbeat(self.port_no, self, self.port_dict, self.blockchain_lock)
+        self.heartbeat_thread = Heartbeat(self, self.blockchain_lock)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((HOST, int(self.port_no)))
         start_wss_thread = threading.Thread(target=self.start_wss)
@@ -117,10 +148,10 @@ class BlockchainServer(threading.Thread):
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")
 
-    def get_proof(self,conn):
+    def get_proof(self, conn):
         payload = {
             "prev_proof": self.Blockchain.get_previous_proof(),
-            "next_proof": self.next_proof 
+            "next_proof": self.next_proof
         }
         conn.sendall(_pickle.dumps(payload))
 
