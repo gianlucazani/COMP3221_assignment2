@@ -78,9 +78,10 @@ class BlockchainMiner(threading.Thread):
                     if dead_server_counter > 2:
                         self.alive = False
                         self.worker_thread.pause()
-                        continue
-                    print(f"Miner {self.port_no} error CONNECTING with server {self.server_port_no}")
-                    print(f"ERROR {e}")
+                        exit()
+                        raise SystemExit(0)
+                    # print(f"Miner {self.port_no} error CONNECTING with server {self.server_port_no}")
+                    # print(f"ERROR {e}")
                     continue
 
                 # REQUEST CURRENT PROOF OWNED BY SERVER

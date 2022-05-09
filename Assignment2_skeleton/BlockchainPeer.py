@@ -38,9 +38,11 @@ class BlockchainPeer():
         blockchain_client_thread.start()
         while blockchain_client_thread.alive and blockchain_miner_thread.alive and blockchain_server_thread.alive:
             pass
-        print(f"Peer {self.node_id} terminated successfully")
-        os._exit(1)
+        return
+
 
 
 peer = BlockchainPeer()
 peer.run()
+print(f"Peer terminated successfully")
+raise SystemExit(0)

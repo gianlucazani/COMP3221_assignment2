@@ -111,6 +111,8 @@ class BlockchainServer(threading.Thread):
                     case "cc":
                         self.server.close()
                         self.alive = False
+                        exit()
+                        raise SystemExit(0)
         except socket.error as e:
             print(f"Server {self.port_no} error RECEIVING from port {address}")
             print(f"ERROR {e}")

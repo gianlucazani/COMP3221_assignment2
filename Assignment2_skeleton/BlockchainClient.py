@@ -20,9 +20,9 @@ class BlockchainClient(threading.Thread):
     def run(self):
         while self.alive:
             print("Which action do you want to perform?")
-            print("1) Transaction [tx|{sender}|{content}]")
-            print("2) Print Blockchain [pb]")
-            print("3) Close Connection [cc]")
+            print("tx) Transaction [tx|{sender}|{content}]")
+            print("pb) Print Blockchain [pb]")
+            print("cc) Close Connection [cc]")
             choice = input()
             match choice:
                 case "tx":
@@ -32,6 +32,8 @@ class BlockchainClient(threading.Thread):
                     print_blockchain_thread = threading.Thread(target=self.print_blockchain)
                     print_blockchain_thread.start()
                 case "cc":
+                    # CLIENT DIES
+                    self.alive = False
                     close_connection_thread = threading.Thread(target=self.close_connection)
                     close_connection_thread.start()
 
@@ -107,6 +109,5 @@ class BlockchainClient(threading.Thread):
                 print(f"Client {self.port_no} error SENDING CC REQUEST to server {self.server_port_no}")
                 print(f"ERROR {e}")
 
-            # CLIENT DIES
-            self.alive = False
-
+            exit()
+            raise SystemExit(0)
