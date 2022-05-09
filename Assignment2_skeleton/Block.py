@@ -1,4 +1,5 @@
 import time
+from Assignment2_skeleton.Transaction import Transaction
 from lib import calculate_hash
 
 
@@ -36,3 +37,9 @@ class Block:
         for transaction in self.transactions:
             content_to_hash += transaction  # will get the transaction in the string format tx|sender|content
         self.current_hash = calculate_hash(content_to_hash)
+
+    def validate(self):
+        for transaction in self.transactions:
+            if not Transaction.validate(transaction):
+                return False
+        return True
