@@ -11,11 +11,13 @@ HOST = "127.0.0.1"
 
 
 class BlockchainClient(threading.Thread):
-    def __init__(self, port_no, server_port_no):
+    def __init__(self, port_no, server_port_no, port_dict):
         super().__init__()
         self.port_no = port_no
         self.server_port_no = server_port_no
+        self.port_dict = port_dict
         self.alive = True
+
 
     def run(self):
         while self.alive:
@@ -62,6 +64,21 @@ class BlockchainClient(threading.Thread):
             except socket.error as e:
                 print(f"Client {self.port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
                 print(f"ERROR {e}")
+            
+        # BROADCAST TO OTHER SERVERS THE TRANSACTION
+        for ID, PORT in self.port_dict.items():
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                try: 
+                    s.connect((HOST, int(PORT)))
+                except socket.error as e:
+                    print(f"error CONNECTING with PEER {ID} at PORT: {PORT}")
+                    print(f"ERROR {e}")
+                try:
+                    s.sendall(bytes(transaction, encoding="utf-8"))
+                except socket.error as e:
+                    print(f"error SENDING TRANSACTION with PEER {ID} at PORT: {PORT}")
+                    print(f"ERROR {e}")
+                    
 
     def print_blockchain(self):
         """
