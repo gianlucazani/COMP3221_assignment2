@@ -9,6 +9,7 @@ class Blockchain:
         self.blockchain = list()  # list of Block objects
         self.transaction_pool = list()  # list of Transaction objects
 
+        # CREATE GENESIS BLOCK (with arbitrary proof and previous_hash, no transaction in it)
         genesis_block = Block(1, self.transaction_pool, 100, "This block has no previous hash")
         self.add_new_block(genesis_block)
 
@@ -17,7 +18,7 @@ class Blockchain:
         Adds the new Block to the blockchain
         :param block: Block object to be added
         """
-        self.transaction_pool = []
+        self.transaction_pool = []  # empty transaction pool when creating a new block (transactions are inserted in the new block)
         self.blockchain.append(block)
 
     def get_previous_block(self):
@@ -57,6 +58,7 @@ class Blockchain:
     def get_five_transactions(self):
         """
         Pops the from the transaction pool the first 5 transactions that have to be added into a new block
+        (pool might be bigger than 5 if transactions keep coming and the next_proof hasn't been found yet)
         :return: List of transactions as strings in the format tx|sender|content
         """
         first_five_transactions = list()
@@ -66,11 +68,15 @@ class Blockchain:
         return first_five_transactions
 
     def blockchain_string(self):
-        result = "TRANSACTIONS IN THE POOL:" + "\n"
+        """
+        Get the blockchain and the transaction pool as a string
+        :return: Blockchain as a string
+        """
+        result = "TRANSACTIONS IN THE POOL:" + "\n\n"
         for transaction in self.transaction_pool:
             result += transaction.get_as_string() + "\n"
 
-        result += "CHAIN:" + "\n"
+        result += "\n" + "CHAIN:" + "\n\n"
         for block in self.blockchain:
             result += f"Index: {block.index} \n"
             result += f"Timestamp: {block.timestamp} \n"

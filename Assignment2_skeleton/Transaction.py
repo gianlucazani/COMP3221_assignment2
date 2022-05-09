@@ -1,11 +1,10 @@
 import re
-import time
+
 
 class Transaction:
     def __init__(self, sender, content):
         self.sender = sender
         self.content = content
-        # self.transaction = f"tx|{sender}|{content}"  # will store a string in the format tx|sender|content
 
     def validate(self):
         """
@@ -25,4 +24,3 @@ class Transaction:
         :return: transaction as a string
         """
         return f"tx|{self.sender}|{self.content}"
-

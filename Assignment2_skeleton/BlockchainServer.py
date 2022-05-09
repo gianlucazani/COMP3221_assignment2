@@ -1,9 +1,7 @@
 from multiprocessing import Lock
-import re
 import threading
 import socket
 import _pickle
-import math
 from Blockchain import Blockchain
 from Transaction import Transaction
 import time
@@ -20,6 +18,12 @@ class Heartbeat(threading.Thread):
         self.blockchain_lock = lock
 
     def run(self):
+        """
+        The Heartbeat thread will keep sending the "hb" command to all the peers every 5 seconds
+        Each blockchain received from the peers as response to "hb" is compared with the one owned by the server
+        that resides in the peer sending the "hb". The blockchain will be eventually updated with the incoming one if
+        longer and valid.
+        """
         while self.server.alive:
             time.sleep(5)
             for peer_id, destination_port in self.server.port_dict.items():
@@ -43,6 +47,7 @@ class Heartbeat(threading.Thread):
                         continue
 
                     if received_blockchain_json:
+                        # Synchronize access to blockchain (server might modify the blockchain at the same time)
                         self.blockchain_lock.acquire()
                         self.compare_blockchains(received_blockchain_json)
                         self.blockchain_lock.release()
@@ -97,7 +102,7 @@ class Heartbeat(threading.Thread):
 
 
 class BlockchainServer(threading.Thread):
-    def __init__(self, node_id: int, port_no: int, node_timeouts, nodes, port_dict, genesis_block_proof: int):
+    def __init__(self, node_id: str, port_no: int, node_timeouts, nodes, port_dict, genesis_block_proof: int):
         super().__init__()
         self.node_id = node_id
         self.port_no = port_no
@@ -111,14 +116,15 @@ class BlockchainServer(threading.Thread):
         self.alive = True
 
     def run(self):
-        self.heartbeat_thread = Heartbeat(self, self.blockchain_lock)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((HOST, int(self.port_no)))
+        self.heartbeat_thread = Heartbeat(self, self.blockchain_lock)
         start_wss_thread = threading.Thread(target=self.start_wss)
         start_wss_thread.start()
         self.heartbeat_thread.start()
 
     def start_wss(self):
+        # The server role keeps listening for incoming commands until it is alive
         try:
             self.server.listen()
             while self.alive:
@@ -141,6 +147,7 @@ class BlockchainServer(threading.Thread):
                         print_blockchain_thread = threading.Thread(target=self.print_blockchain, args=(msg, conn))
                         print_blockchain_thread.start()
                     case "cc":
+                        # terminates the server
                         self.server.close()
                         self.alive = False
                         exit()
@@ -157,6 +164,11 @@ class BlockchainServer(threading.Thread):
         conn.sendall(_pickle.dumps(payload))
 
     def update_proof(self, msg, conn):
+        """
+        Checks if the next_proof sent by the miner is valid and if so rewards it
+        :param msg: msg sent by the miner
+        :param conn: miner's socket
+        """
         proof = int(msg[3:])
 
         # validate proof is correct
@@ -169,18 +181,25 @@ class BlockchainServer(threading.Thread):
             conn.sendall(b"No Reward")
 
     def update_transaction(self, msg, conn):
+        """
+        Validates transaction sent by the client and adds it to the Blockchain pool
+        If the transaction pool contains 5 or more transactions and we already have a next_proof, a new block is created and added to the blockchain
+        """
         print(f"Server {self.port_no} is validating transaction")
         try:
             msg = msg.split("|")
             if len(msg) == 3:
+                # create transaction object from msg
                 transaction = Transaction(msg[1], msg[2])
                 try:
                     if transaction.validate():
+                        # send back to client that the transaction has been accepted
                         conn.sendall(b"Accepted")
                         self.Blockchain.add_transaction(transaction)
                         if self.Blockchain.pool_length() >= 5:
                             self.create_block()
                     else:
+                        # send back to client that the transaction has been rejected
                         conn.sendall(b"Rejected")
                 except socket.error as e:
                     print(f"Server {self.port_no} error SENDING transaction validation to {conn}")
@@ -193,20 +212,33 @@ class BlockchainServer(threading.Thread):
             print(e)
 
     def return_heartbeat(self, msg, conn):
+        """
+        Sends back the blockchain in json to the peer which has requested it with an "hb" command
+        """
         blockchain_json = _pickle.dumps(self.Blockchain)
         conn.sendall(blockchain_json)
 
     def print_blockchain(self, msg, conn):
-        blockchain_json = _pickle.dumps(self.Blockchain, )
+        """
+        Sends back to client the blockchain as a json (the client will print it at terminal)
+        :param msg:
+        :param conn:
+        """
+        blockchain_json = _pickle.dumps(self.Blockchain)
         conn.sendall(blockchain_json)
 
     def create_block(self):
+        """
+        Creates a new block and adds it ot the blockchain
+        """
+        # if the blockchain has at least 5 transactions in the pool and I have the next proof, create the block
+        self.blockchain_lock.acquire()  # acquire the lock
         if self.Blockchain.pool_length() >= 5 and self.next_proof > 0:
-            transactions = self.Blockchain.get_five_transactions()
-            self.blockchain_lock.acquire()
+            transactions = self.Blockchain.get_five_transactions()  # take the first 5 transactions form the pool as strings
             block = Block(self.Blockchain.get_previous_index() + 1, transactions, self.next_proof,
-                          self.Blockchain.get_previous_block_hash())
+                          self.Blockchain.get_previous_block_hash())  # instantiate new block
             self.Blockchain.add_new_block(block)
-            self.blockchain_lock.release()
+            self.blockchain_lock.release()  # release the lock
+            # update proofs known by the server
             self.prev_proof = self.next_proof
-            self.next_proof = -1
+            self.next_proof = -1  # server needs the next proof

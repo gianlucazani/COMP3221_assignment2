@@ -27,7 +27,7 @@ class Block:
         """
         Calculates the current_hash of the block from its content
         """
-        content_to_hash = ""
+        content_to_hash = ""  # will contain the content to hash as string
         content_to_hash += str(self.index)
         # We do not hash the timestamp because when the genesis block is created, it is created at slightly (or big) different times by the peers
         # and if we hash the timestamp, we will end up having all different genesis blocks (and so genesis blocks' current hashes)
@@ -36,11 +36,15 @@ class Block:
         content_to_hash += self.previous_hash
         for transaction in self.transactions:
             content_to_hash += transaction  # will get the transaction in the string format tx|sender|content
-        self.current_hash = calculate_hash(content_to_hash)
+        self.current_hash = calculate_hash(content_to_hash)  # initializes self.current_hash
 
     def is_valid(self):
+        """
+        Validates the block, i.e. checks if all the transaction contained in the block are valid
+        :return: True if block is valid, false otherwise
+        """
         for transaction in self.transactions:
-            tr = Transaction(transaction.split("|")[1],transaction.split("|")[2])
-            if not tr.validate():
+            tr = Transaction(transaction.split("|")[1], transaction.split("|")[2])  # create the transaction object
+            if not tr.validate():  # call the validate method on the object
                 return False
         return True

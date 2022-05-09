@@ -1,6 +1,5 @@
 import _pickle
 import socket
-import _thread
 import threading
 import time
 
@@ -55,7 +54,6 @@ class BlockchainMiner(threading.Thread):
         super().__init__()
         self.server_port_no = server_port_no
         self.prev_proof = 100  # genesis block proof
-        # self.work_on_next_proof = True
         self.worker_thread = Worker(self.prev_proof, self.server_port_no)
         self.alive = True
 
@@ -65,7 +63,7 @@ class BlockchainMiner(threading.Thread):
         poll_server_thread.start()
 
     def poll_server(self):
-        dead_server_counter = 0
+        dead_server_counter = 0  # will keep the number of times the miner cannot connect to its server role
         while self.alive:
             time.sleep(1)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -75,6 +73,7 @@ class BlockchainMiner(threading.Thread):
                 except socket.error as e:
                     dead_server_counter += 1
                     if dead_server_counter > 2:
+                        # if miner cannot connect to server for 3 times, than it kills itself
                         self.alive = False
                         self.worker_thread.pause()
                         exit()
@@ -89,7 +88,7 @@ class BlockchainMiner(threading.Thread):
                     s.sendall(bytes(message, encoding="utf-8"))
 
                 except socket.error as e:
-                    print(f"Miner {self.port_no} error SENDING REQUEST to server {self.server_port_no}")
+                    print(f"Miner {self.server_port_no} error SENDING REQUEST to server {self.server_port_no}")
                     print(f"ERROR {e}")
                     continue
 
@@ -121,6 +120,6 @@ class BlockchainMiner(threading.Thread):
                         else:
                             self.worker_thread.activate()
                 except socket.error as e:
-                    print(f"Miner {self.port_no} error RECEIVING PROOF to server {self.server_port_no}")
+                    print(f"Miner {self.server_port_no} error RECEIVING PROOF to server {self.server_port_no}")
                     print(f"ERROR {e}")
                     continue
