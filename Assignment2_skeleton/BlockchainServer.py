@@ -189,7 +189,7 @@ class BlockchainServer(threading.Thread):
         print(f"Server {self.port_no} is validating transaction")
         try:
             msg = msg.split("|")
-            if len(msg) == 3:
+            if len(msg) == 3 and msg[0]=="tx":
                 # create transaction object from msg
                 transaction = Transaction(msg[1], msg[2])
                 try:
