@@ -11,7 +11,7 @@ class Transaction:
         Validates the transaction as specified in the assignment sheet
         :return: True if the transaction is valid, False otherwise
         """
-        sender_pattern = re.compile("[A-Za-z0-9]+")
+        sender_pattern = re.compile("[a-z]{4}[0-9]{4}")
         if sender_pattern.fullmatch(self.sender) is None:  # checks sender correct format
             return False
         if "\\" in self.content or len(self.content) > 70:  # checks correctness of the content field
