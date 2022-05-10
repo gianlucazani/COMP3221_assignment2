@@ -47,23 +47,26 @@ class BlockchainClient(threading.Thread):
             try:
                 s.connect((HOST, int(self.server_port_no)))
             except socket.error as e:
-                print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
+                # print(f"ERROR {e}")
 
             # SEND TRANSACTION TO SERVER
             try:
                 s.sendall(bytes(transaction, encoding="utf-8"))
             except socket.error as e:
-                print(f"Client {self.server_port_no} error SENDING TRANSACTION to server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error SENDING TRANSACTION to server {self.server_port_no}")
+                # print(f"ERROR {e}")
 
             # PRINT RESPONSE FROM SERVER ABOUT VALID TRANSACTION
             try:
                 received = s.recv(4096)
                 print(received.decode("utf-8"))
             except socket.error as e:
-                print(f"Client {self.server_port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
+                # print(f"ERROR {e}")
 
         # BROADCAST TO OTHER SERVERS THE TRANSACTION
         for ID, PORT in self.port_dict.items():
@@ -71,13 +74,15 @@ class BlockchainClient(threading.Thread):
                 try:
                     s.connect((HOST, int(PORT)))
                 except socket.error as e:
-                    print(f"error CONNECTING with PEER {ID} at PORT: {PORT}")
-                    print(f"ERROR {e}")
+                    pass
+                    # print(f"error CONNECTING with PEER {ID} at PORT: {PORT}")
+                    # print(f"ERROR {e}")
                 try:
                     s.sendall(bytes(transaction, encoding="utf-8"))
                 except socket.error as e:
-                    print(f"error SENDING TRANSACTION with PEER {ID} at PORT: {PORT}")
-                    print(f"ERROR {e}")
+                    pass
+                    # print(f"error SENDING TRANSACTION with PEER {ID} at PORT: {PORT}")
+                    # print(f"ERROR {e}")
 
     def print_blockchain(self):
         """
@@ -88,25 +93,28 @@ class BlockchainClient(threading.Thread):
             try:
                 s.connect((HOST, int(self.server_port_no)))
             except socket.error as e:
-                print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
+                # print(f"ERROR {e}")
 
             # SEND PB REQUEST TO SERVER
             try:
                 message = "pb"
                 s.sendall(bytes(message, encoding="utf-8"))
             except socket.error as e:
-                print(f"Client {self.server_port_no} error SENDING PB REQUEST to server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error SENDING PB REQUEST to server {self.server_port_no}")
+                # print(f"ERROR {e}")
 
             # RECEIVE BLOCKCHAIN AS JSON FROM SERVER
             try:
                 received = s.recv(4096)
                 blockchain = _pickle.loads(received)
-                print(f"BLOCKCHAIN JSON: \n {blockchain.blockchain_string()}")
+                print(f"{blockchain.blockchain_string()}")
             except socket.error as e:
-                print(f"Client {self.server_port_no} error RECEIVING BLOCKCHAIN from server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error RECEIVING BLOCKCHAIN from server {self.server_port_no}")
+                # print(f"ERROR {e}")
 
     def close_connection(self):
         """
@@ -117,13 +125,15 @@ class BlockchainClient(threading.Thread):
             try:
                 s.connect((HOST, int(self.server_port_no)))
             except socket.error as e:
-                print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
+                # print(f"ERROR {e}")
 
             # SEND PB REQUEST TO SERVER
             try:
                 message = "cc"
                 s.sendall(bytes(message, encoding="utf-8"))
             except socket.error as e:
-                print(f"Client {self.server_port_no} error SENDING CC REQUEST to server {self.server_port_no}")
-                print(f"ERROR {e}")
+                pass
+                # print(f"Client {self.server_port_no} error SENDING CC REQUEST to server {self.server_port_no}")
+                # print(f"ERROR {e}")

@@ -34,16 +34,17 @@ class Heartbeat(threading.Thread):
                         s.connect((HOST, int(destination_port)))
                         s.sendall(bytes(heartbeat, encoding="utf-8"))
                     except socket.error as e:
-                        print(f"Server {self.server.port_no} error SENDING HEARTBEAT to {peer_id}")
-                        print(f"ERROR {e}")
+                        continue
+                        # print(f"Server {self.server.port_no} error SENDING HEARTBEAT to {peer_id}")
+                        # print(f"ERROR {e}")
 
                     # LISTEN FOR PEER'S BLOCKCHAIN JSON
                     try:
                         received = s.recv(4096)
                         received_blockchain_json = received
                     except socket.error as e:
-                        print(f"Server {self.server.port_no} error RECEIVING BLOCKCHAIN JSON in HB from {destination_port}")
-                        print(f"ERROR {e}")
+                        # print(f"Server {self.server.port_no} error RECEIVING BLOCKCHAIN JSON in HB from {destination_port}")
+                        # print(f"ERROR {e}")
                         continue
 
                     if received_blockchain_json:
@@ -85,7 +86,7 @@ class Heartbeat(threading.Thread):
         :return: True if all valid, False otherwise
         """
         for block in exceeding_blocks:
-            print(f"block from validate exceeding blocks {block}")
+            # print(f"block from validate exceeding blocks {block}")
             if not block.is_valid():
                 return False
         return True
@@ -152,8 +153,9 @@ class BlockchainServer(threading.Thread):
                         exit()
                         raise SystemExit(0)
         except socket.error as e:
-            print(f"Server {self.port_no} error RECEIVING from port {address}")
-            print(f"ERROR {e}")
+            pass
+            # print(f"Server {self.port_no} error RECEIVING from port {address}")
+            # print(f"ERROR {e}")
 
     def get_proof(self, conn):
         payload = {
@@ -171,7 +173,7 @@ class BlockchainServer(threading.Thread):
         proof = int(msg[3:])
 
         # validate proof is correct
-        print(f"prev proof from server is: {self.prev_proof}")
+        # print(f"prev proof from server is: {self.prev_proof}")
         if calculate_hash(proof ** 2 - self.prev_proof ** 2)[:2] == "00":
             conn.sendall(b"Reward")
             self.next_proof = proof
@@ -201,12 +203,12 @@ class BlockchainServer(threading.Thread):
                         # send back to client that the transaction has been rejected
                         conn.sendall(b"Rejected")
                 except socket.error as e:
-                    print(f"Server {self.port_no} error SENDING transaction validation to {conn}")
-                    print(f"ERROR {e}")
+                    pass
+                    # print(f"Server {self.port_no} error SENDING transaction validation to {conn}")
+                    # print(f"ERROR {e}")
             else:
                 # server sends "Rejected" message to client
                 conn.sendall(b"Rejected")
-                print("reject")
         except Exception as e:
             print(e)
 
@@ -231,8 +233,8 @@ class BlockchainServer(threading.Thread):
         Creates a new block and adds it ot the blockchain
         """
         # if the blockchain has at least 5 transactions in the pool and I have the next proof, create the block
-        self.blockchain_lock.acquire()  # acquire the lock
         if self.Blockchain.pool_length() >= 5 and self.next_proof > 0:
+            self.blockchain_lock.acquire()  # acquire the lock
             transactions = self.Blockchain.get_five_transactions()  # take the first 5 transactions form the pool as strings
             block = Block(self.Blockchain.get_previous_index() + 1, transactions, self.next_proof,
                           self.Blockchain.get_previous_block_hash())  # instantiate new block
