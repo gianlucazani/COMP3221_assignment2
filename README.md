@@ -151,10 +151,14 @@ up|{next_proof}
 ```
 ### The ```hb``` command
 The ```hb``` (heartbeat) command is exchanged by server roles of the peers in the network and it used for polling other peer's blockchains. This is done in order to continuously and constantly agree on the blockchain. Every 5 seconds each peer sends to all other peers the ```hb``` command. Upone reception of this command, a peer will convert its blockchain to json and will send it back to peer who sent the ```hb```.<br><br>
-When a blockchain is received, it is checked if its length is greater than the one I own, if it is greater than it is checked that all the _exceeding blocks_ are valid, and if so my blockchain gets updated with the received, longer and valid one.<br><br>
+
+When a blockchain is received, it is checked if its length is greater than the one I own, if it is greater than it is checked that all the _exceeding blocks_ are valid (i.e. contain only valid transactions), and if this is true then my blockchain gets updated with the received, longer, valid one.<br><br>
 What we mean by _exceeding blocks_ is represented by the blue blocks in the image below:
 
 <p align="center">
-  <img src="untitled@2x (2).png" width="450px"/>
+  <img src="untitled@2x (2).png" width="600px"/>
 </p>
+
+In this case if blocks 4 and 5 are valid, the OWNED BLOCKCHAIN will be updated with the RECEIVED BLOCKCHAIN.
+
   
