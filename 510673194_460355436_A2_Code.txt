@@ -1,0 +1,740 @@
+import time
+from Transaction import Transaction
+from lib import calculate_hash
+
+
+class Block:
+    def __init__(self, index: int, transactions: list, proof: int, previous_hash: str, current_hash=None):
+        """
+        Creates a new Block object
+        :param index: index of the block in the blockchain
+        :param transactions: list of Transaction objects
+        :param proof: integer, represents the nonce
+        :param previous_hash: string representing the reference to the previous block in the blockchain (is the previous block's current_hash)
+        :param current_hash: optional value (default None), if kept at its default, the block will automatically compute its hash starting from its content. If a value is passed, then the current_hash of the block will be the passed value
+        """
+        self.index = index
+        self.timestamp = time.time()
+        self.transactions = transactions
+        self.proof = proof  # it is the nonce
+        self.previous_hash = previous_hash  # previous block's current_hash
+        if current_hash is not None:
+            self.current_hash = current_hash
+        else:
+            self.get_current_hash()
+
+    def get_current_hash(self):
+        """
+        Calculates the current_hash of the block from its content
+        """
+        content_to_hash = ""  # will contain the content to hash as string
+        content_to_hash += str(self.index)
+        # We do not hash the timestamp because when the genesis block is created, it is created at slightly (or big) different times by the peers
+        # and if we hash the timestamp, we will end up having all different genesis blocks (and so genesis blocks' current hashes)
+        # content_to_hash += str(self.timestamp)
+        content_to_hash += str(self.proof)
+        content_to_hash += self.previous_hash
+        for transaction in self.transactions:
+            content_to_hash += transaction  # will get the transaction in the string format tx|sender|content
+        self.current_hash = calculate_hash(content_to_hash)  # initializes self.current_hash
+
+    def is_valid(self):
+        """
+        Validates the block, i.e. checks if all the transaction contained in the block are valid
+        :return: True if block is valid, false otherwise
+        """
+        for transaction in self.transactions:
+            tr = Transaction(transaction.split("|")[1], transaction.split("|")[2])  # create the transaction object
+            if not tr.validate():  # call the validate method on the object
+                return False
+        return True
+
+from Block import Block
+
+
+class Blockchain:
+    def __init__(self):
+        """
+        Creates the blockchain and adds the genesis block
+        """
+        self.blockchain = list()  # list of Block objects
+        self.transaction_pool = list()  # list of Transaction objects
+
+        # CREATE GENESIS BLOCK (with arbitrary proof and previous_hash, no transaction in it)
+        genesis_block = Block(1, self.transaction_pool, 100, "This block has no previous hash")
+        self.add_new_block(genesis_block)
+
+    def add_new_block(self, block: Block):
+        """
+        Adds the new Block to the blockchain
+        :param block: Block object to be added
+        """
+        self.transaction_pool = []  # empty transaction pool when creating a new block (transactions are inserted in the new block)
+        self.blockchain.append(block)
+
+    def get_previous_block(self):
+        """
+        :return: Last Block in the blockchain as Block object
+        """
+        return self.blockchain[-1]
+
+    def get_previous_block_hash(self):
+        """
+        :return: Returns the previous hash (previous block's current hash) as a string
+        """
+        previous_block = self.get_previous_block()
+        return previous_block.current_hash
+
+    def pool_length(self):
+        return len(self.transaction_pool)
+
+    def get_previous_index(self):
+        """
+        :return: Returns the previous hash (previous block's current hash) as a string
+        """
+        previous_block = self.get_previous_block()
+        return previous_block.index
+
+    def add_transaction(self, transaction):
+        """
+        adds transaction to the transaction pool
+        """
+        self.transaction_pool.append(transaction)
+        # sort transactions in pool based on timestamp
+
+    def get_previous_proof(self):
+        previous_block = self.get_previous_block()
+        return previous_block.proof
+
+    def get_five_transactions(self):
+        """
+        Pops the from the transaction pool the first 5 transactions that have to be added into a new block
+        (pool might be bigger than 5 if transactions keep coming and the next_proof hasn't been found yet)
+        :return: List of transactions as strings in the format tx|sender|content
+        """
+        first_five_transactions = list()
+        for i in range(5):
+            # Remove get_as_string if we decide to handle transactions as normal string and not as objects
+            first_five_transactions.append(self.transaction_pool.pop(0).get_as_string())
+        return first_five_transactions
+
+    def blockchain_string(self):
+        """
+        Get the blockchain and the transaction pool as a string
+        :return: Blockchain as a string
+        """
+        result = "TRANSACTIONS IN THE POOL:" + "\n\n"
+        for transaction in self.transaction_pool:
+            result += transaction.get_as_string() + "\n"
+
+        result += "\n" + "CHAIN:" + "\n\n"
+        for block in self.blockchain:
+            result += f"Index: {block.index} \n"
+            result += f"Timestamp: {block.timestamp} \n"
+            result += f"Transactions: {block.transactions} \n"
+            result += f"Proof: {block.proof} \n"
+            result += f"Previous hash: {block.previous_hash} \n"
+            result += f"Current hash: {block.current_hash} \n"
+            result += "\n"
+
+        return result
+
+import _pickle
+import threading
+import socket
+
+HOST = "127.0.0.1"
+
+
+class BlockchainClient(threading.Thread):
+    def __init__(self, server_port_no, port_dict):
+        super().__init__()
+        self.server_port_no = server_port_no  # peer port number (server role)
+        self.port_dict = port_dict  # dictionary of all the neighbours with their port
+        self.alive = True
+
+    def run(self):
+
+        # KEEP ASKING FOR USER INPUT UNTIL THE PEER IS ALIVE
+        while self.alive:
+            # ask for user input
+            print("Which action do you want to perform? (type the command)")
+            print("tx) Transaction [tx|{sender}|{content}]")
+            print("pb) Print Blockchain [pb]")
+            print("cc) Close Connection [cc]")
+            choice = input()
+            match choice:
+                case "tx":
+                    self.send_transaction()
+                case "pb":
+                    print_blockchain_thread = threading.Thread(target=self.print_blockchain)
+                    print_blockchain_thread.start()
+                case "cc":
+                    # CLIENT DIES
+                    self.alive = False
+                    close_connection_thread = threading.Thread(target=self.close_connection)
+                    close_connection_thread.start()
+
+    def send_transaction(self):
+        """
+        Manages the sending of a new trnasaction to all the peers in the network, including to the server ole that resides in the same peer as the client
+        """
+        print("Write the transaction in the format tx|{sender}|{content}")
+        transaction = input()
+
+        # BROADCAST TO MY SERVER ROLE
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # CONNECT TO SERVER
+            try:
+                s.connect((HOST, int(self.server_port_no)))
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+            # SEND TRANSACTION TO SERVER
+            try:
+                s.sendall(bytes(transaction, encoding="utf-8"))
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error SENDING TRANSACTION to server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+            # PRINT RESPONSE FROM SERVER ABOUT VALID TRANSACTION
+            try:
+                received = s.recv(4096)
+                print(received.decode("utf-8"))
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+        # BROADCAST TO OTHER SERVERS THE TRANSACTION
+        for ID, PORT in self.port_dict.items():
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                try:
+                    s.connect((HOST, int(PORT)))
+                except socket.error as e:
+                    pass
+                    # print(f"error CONNECTING with PEER {ID} at PORT: {PORT}")
+                    # print(f"ERROR {e}")
+                try:
+                    s.sendall(bytes(transaction, encoding="utf-8"))
+                except socket.error as e:
+                    pass
+                    # print(f"error SENDING TRANSACTION with PEER {ID} at PORT: {PORT}")
+                    # print(f"ERROR {e}")
+
+    def print_blockchain(self):
+        """
+        Asks the server the blockchain as json and prints it at terminal
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # CONNECT TO SERVER
+            try:
+                s.connect((HOST, int(self.server_port_no)))
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+            # SEND PB REQUEST TO SERVER
+            try:
+                message = "pb"
+                s.sendall(bytes(message, encoding="utf-8"))
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error SENDING PB REQUEST to server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+            # RECEIVE BLOCKCHAIN AS JSON FROM SERVER
+            try:
+                received = s.recv(4096)
+                blockchain = _pickle.loads(received)
+                print(f"{blockchain.blockchain_string()}")
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error RECEIVING BLOCKCHAIN from server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+    def close_connection(self):
+        """
+        Sends "cc" to the server and kill itself
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # CONNECT TO SERVER
+            try:
+                s.connect((HOST, int(self.server_port_no)))
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+            # SEND PB REQUEST TO SERVER
+            try:
+                message = "cc"
+                s.sendall(bytes(message, encoding="utf-8"))
+            except socket.error as e:
+                pass
+                # print(f"Client {self.server_port_no} error SENDING CC REQUEST to server {self.server_port_no}")
+                # print(f"ERROR {e}")
+
+import re
+
+
+class Transaction:
+    def __init__(self, sender, content):
+        self.sender = sender
+        self.content = content
+
+    def validate(self):
+        """
+        Validates the transaction as specified in the assignment sheet
+        :return: True if the transaction is valid, False otherwise
+        """
+        sender_pattern = re.compile("[a-z]{4}[0-9]{4}")
+        if sender_pattern.fullmatch(self.sender) is None:  # checks sender correct format
+            return False
+        if "\\" in self.content or len(self.content) > 70:  # checks correctness of the content field
+            return False
+        return True
+
+    def get_as_string(self):
+        """
+        Returns the transaction in the form tx|[sender]|[content]
+        :return: transaction as a string
+        """
+        return f"tx|{self.sender}|{self.content}"
+
+from multiprocessing import Lock
+import threading
+import socket
+import _pickle
+from Blockchain import Blockchain
+from Transaction import Transaction
+import time
+from Block import Block
+from lib import calculate_hash
+
+HOST = "127.0.0.1"
+
+
+class Heartbeat(threading.Thread):
+    def __init__(self, server, lock):
+        super(Heartbeat, self).__init__()
+        self.server = server
+        self.blockchain_lock = lock
+
+    def run(self):
+        """
+        The Heartbeat thread will keep sending the "hb" command to all the peers every 5 seconds
+        Each blockchain received from the peers as response to "hb" is compared with the one owned by the server
+        that resides in the peer sending the "hb". The blockchain will be eventually updated with the incoming one if
+        longer and valid.
+        """
+        while self.server.alive:
+            time.sleep(5)
+            for peer_id, destination_port in self.server.port_dict.items():
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    # SEND HEARTBEAT
+                    heartbeat = "hb"
+                    try:
+                        s.connect((HOST, int(destination_port)))
+                        s.sendall(bytes(heartbeat, encoding="utf-8"))
+                    except socket.error as e:
+                        continue
+                        # print(f"Server {self.server.port_no} error SENDING HEARTBEAT to {peer_id}")
+                        # print(f"ERROR {e}")
+
+                    # LISTEN FOR PEER'S BLOCKCHAIN JSON
+                    try:
+                        received = s.recv(4096)
+                        received_blockchain_json = received
+                    except socket.error as e:
+                        # print(f"Server {self.server.port_no} error RECEIVING BLOCKCHAIN JSON in HB from {destination_port}")
+                        # print(f"ERROR {e}")
+                        continue
+
+                    if received_blockchain_json:
+                        # Synchronize access to blockchain (server might modify the blockchain at the same time)
+                        self.blockchain_lock.acquire()
+                        self.compare_blockchains(received_blockchain_json)
+                        self.blockchain_lock.release()
+
+    def compare_blockchains(self, other_blockchain_json):
+        """
+        This method will:
+        1) Compare the received blockchain's length with ours
+        2) If the length is greater, it checks if all the exceeding blocks are valid (valid transactions inside)
+        3) If so, it will update the blockchain with the new, longer one
+        :param other_blockchain_json: received json from server after hb
+        """
+        other_blockchain = _pickle.loads(other_blockchain_json)
+        if isinstance(other_blockchain,
+                      Blockchain):  # if the thing the peer sent me is actually a Blockchain object, then I can comapre it
+            if len(other_blockchain.blockchain) > len(self.server.Blockchain.blockchain):  # check chains lengths
+                exceeding_blocks = self.get_exceeding_blocks(other_blockchain)
+                if self.valid_exceeding_blocks(exceeding_blocks):
+                    self.update_blockchain(other_blockchain)  # keep the longest chain
+
+    def get_exceeding_blocks(self, other_blockchain: Blockchain):
+        """
+        Returns a list of blocks that are the ones existing in the received blockchain but not in ours
+        :param other_blockchain: received Blockchain object
+        :return: list(Block)
+        """
+        length_difference = len(other_blockchain.blockchain) - len(self.server.Blockchain.blockchain)
+        exceeding_blocks = other_blockchain.blockchain[-length_difference:]
+        return exceeding_blocks
+
+    def valid_exceeding_blocks(self, exceeding_blocks):
+        """
+        Checks that each exceeding block is valid (all the transactions inside are valid)
+        :param exceeding_blocks: list(Block)
+        :return: True if all valid, False otherwise
+        """
+        for block in exceeding_blocks:
+            # print(f"block from validate exceeding blocks {block}")
+            if not block.is_valid():
+                return False
+        return True
+
+    def update_blockchain(self, new_blockchain: Blockchain):
+        """
+        Updates our blockchain with the received one, updates server's known prev_proof and next_proof
+        It will update also the transaction pool
+        :param new_blockchain: Blockchain object
+        """
+        self.server.Blockchain = new_blockchain
+        self.server.prev_proof = self.server.Blockchain.get_previous_proof()
+        self.server.next_proof = -1
+
+
+class BlockchainServer(threading.Thread):
+    def __init__(self, node_id: str, port_no: int, node_timeouts, port_dict, genesis_block_proof: int):
+        super().__init__()
+        self.node_id = node_id
+        self.port_no = port_no
+        self.node_timeouts = node_timeouts
+        self.port_dict = port_dict
+        self.Blockchain = Blockchain()
+        self.next_proof = -1
+        self.prev_proof = genesis_block_proof
+        self.blockchain_lock = Lock()
+        self.alive = True
+
+    def run(self):
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.bind((HOST, int(self.port_no)))
+        self.heartbeat_thread = Heartbeat(self, self.blockchain_lock)
+        start_wss_thread = threading.Thread(target=self.start_wss)
+        start_wss_thread.start()
+        self.heartbeat_thread.start()
+
+    def start_wss(self):
+        # The server role keeps listening for incoming commands until it is alive
+        try:
+            self.server.listen()
+            while self.alive:
+                conn, address = self.server.accept()
+                msg = (conn.recv(2048)).decode("utf-8")
+                match msg[0:2]:
+                    case "gp":
+                        get_proof_thread = threading.Thread(target=self.get_proof, args=(conn,))
+                        get_proof_thread.start()
+                    case "up":
+                        update_proof_thread = threading.Thread(target=self.update_proof, args=(msg, conn))
+                        update_proof_thread.start()
+                    case "tx":
+                        update_transaction_thread = threading.Thread(target=self.update_transaction, args=(msg, conn))
+                        update_transaction_thread.start()
+                    case "hb":
+                        return_heartbeat_thread = threading.Thread(target=self.return_heartbeat, args=(msg, conn))
+                        return_heartbeat_thread.start()
+                    case "pb":
+                        print_blockchain_thread = threading.Thread(target=self.print_blockchain, args=(msg, conn))
+                        print_blockchain_thread.start()
+                    case "cc":
+                        # terminates the server
+                        self.server.close()
+                        self.alive = False
+                        exit()
+                        raise SystemExit(0)
+        except socket.error as e:
+            pass
+            # print(f"Server {self.port_no} error RECEIVING from port {address}")
+            # print(f"ERROR {e}")
+
+    def get_proof(self, conn):
+        payload = {
+            "prev_proof": self.Blockchain.get_previous_proof(),
+            "next_proof": self.next_proof
+        }
+        conn.sendall(_pickle.dumps(payload))
+
+    def update_proof(self, msg, conn):
+        """
+        Checks if the next_proof sent by the miner is valid and if so rewards it
+        :param msg: msg sent by the miner
+        :param conn: miner's socket
+        """
+        proof = int(msg[3:])
+
+        # validate proof is correct
+        # print(f"prev proof from server is: {self.prev_proof}")
+        if calculate_hash(proof ** 2 - self.prev_proof ** 2)[:2] == "00":
+            conn.sendall(b"Reward")
+            self.next_proof = proof
+            self.create_block()
+        else:
+            conn.sendall(b"No Reward")
+
+    def update_transaction(self, msg, conn):
+        """
+        Validates transaction sent by the client and adds it to the Blockchain pool
+        If the transaction pool contains 5 or more transactions and we already have a next_proof, a new block is created and added to the blockchain
+        """
+        print(f"Server {self.port_no} is validating transaction")
+        try:
+            msg = msg.split("|")
+            if len(msg) == 3 and msg[0]=="tx":
+                # create transaction object from msg
+                transaction = Transaction(msg[1], msg[2])
+                try:
+                    if transaction.validate():
+                        # send back to client that the transaction has been accepted
+                        conn.sendall(b"Accepted")
+                        self.Blockchain.add_transaction(transaction)
+                        if self.Blockchain.pool_length() >= 5:
+                            self.create_block()
+                    else:
+                        # send back to client that the transaction has been rejected
+                        conn.sendall(b"Rejected")
+                except socket.error as e:
+                    pass
+                    # print(f"Server {self.port_no} error SENDING transaction validation to {conn}")
+                    # print(f"ERROR {e}")
+            else:
+                # server sends "Rejected" message to client
+                conn.sendall(b"Rejected")
+        except Exception as e:
+            print(e)
+
+    def return_heartbeat(self, msg, conn):
+        """
+        Sends back the blockchain in json to the peer which has requested it with an "hb" command
+        """
+        blockchain_json = _pickle.dumps(self.Blockchain)
+        conn.sendall(blockchain_json)
+
+    def print_blockchain(self, msg, conn):
+        """
+        Sends back to client the blockchain as a json (the client will print it at terminal)
+        :param msg:
+        :param conn:
+        """
+        blockchain_json = _pickle.dumps(self.Blockchain)
+        conn.sendall(blockchain_json)
+
+    def create_block(self):
+        """
+        Creates a new block and adds it ot the blockchain
+        """
+        # if the blockchain has at least 5 transactions in the pool and I have the next proof, create the block
+        if self.Blockchain.pool_length() >= 5 and self.next_proof > 0:
+            self.blockchain_lock.acquire()  # acquire the lock
+            transactions = self.Blockchain.get_five_transactions()  # take the first 5 transactions form the pool as strings
+            block = Block(self.Blockchain.get_previous_index() + 1, transactions, self.next_proof,
+                          self.Blockchain.get_previous_block_hash())  # instantiate new block
+            self.Blockchain.add_new_block(block)
+            self.blockchain_lock.release()  # release the lock
+            # update proofs known by the server
+            self.prev_proof = self.next_proof
+            self.next_proof = -1  # server needs the next proof
+
+import time
+from BlockchainMiner import BlockchainMiner
+from BlockchainServer import BlockchainServer
+from BlockchainClient import BlockchainClient
+import sys
+
+GENESIS_BLOCK_PROOF = 100
+
+
+class BlockchainPeer:
+    def __init__(self):
+        # initialise variables from the command line input
+        self.node_id = sys.argv[1]
+        self.port_no = int(sys.argv[2])
+        self.config_fp = sys.argv[3]
+        self.port_dict = {}
+        self.node_timeouts = {}
+
+        f = open(self.config_fp, 'r')
+        self.num_adj_nodes = int(f.readline())
+
+        for i in range(self.num_adj_nodes):
+            _input = f.readline()
+            _input = _input.split()
+            self.port_dict[_input[0]] = int(_input[1])
+            self.node_timeouts.update({_input[0]: {'ping': time.time(), 'state': True}})
+
+    def run(self):
+        blockchain_server_thread = BlockchainServer(self.node_id, self.port_no, self.node_timeouts,
+                                                    self.port_dict, GENESIS_BLOCK_PROOF)
+        blockchain_miner_thread = BlockchainMiner(self.port_no)
+        blockchain_client_thread = BlockchainClient(self.port_no, self.port_dict)
+        blockchain_server_thread.start()
+        blockchain_miner_thread.start()
+        blockchain_client_thread.start()
+        while blockchain_client_thread.alive and blockchain_miner_thread.alive and blockchain_server_thread.alive:
+            pass
+        return
+
+
+peer = BlockchainPeer()
+peer.run()
+print(f"Peer terminated successfully")
+sys.exit(0)
+
+import _pickle
+import socket
+import threading
+import time
+
+from lib import calculate_hash
+
+HOST = "127.0.0.1"
+
+
+class Worker(threading.Thread):
+    def __init__(self, proof_to_work_on, server_port_no):
+        super().__init__()
+        self.working_on_proof = proof_to_work_on
+        self.server_port_no = server_port_no
+        self.running = False
+
+    def run(self):
+        while True:
+            if not self.running:  # if worker is paused, do nothing
+                continue
+            next_proof = 0
+            # if worker is running (i.e. has to find the next_proof for the server)
+            # keep trying finding the next_proof
+            # the while loop is blocked from the miner if it gets notified from the server that the proof the worker is working has already been found
+            while self.running and calculate_hash(next_proof ** 2 - self.working_on_proof ** 2)[:2] != "00":
+                next_proof += 1
+            if self.running:  # if you went out of the loop because you found the proof of work (and not because you've been paused)
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((HOST, int(self.server_port_no)))
+                    message = f"up|{next_proof}"
+
+                    # SEND NEW PROOF TO SERVER
+                    try:
+                        if self.running:  # if at this point you're still running, you can send the next_proof back to the server
+                            s.sendall(bytes(message, encoding="utf-8"))
+                            self.pause()  # pause myself and wait for the miner to activate me at the next "gp"
+                            received = s.recv(4096)
+                            print(received.decode("utf-8"))
+                    except socket.error as e:
+                        # print(f"Miner error SENDING PROOF to server {self.server_port_no}")
+                        # print(f"ERROR {e}")
+                        continue
+
+    def pause(self):
+        self.running = False
+
+    def activate(self):
+        self.running = True
+
+
+class BlockchainMiner(threading.Thread):
+    def __init__(self, server_port_no):
+        super().__init__()
+        self.server_port_no = server_port_no
+        self.prev_proof = 100  # genesis block proof
+        self.worker_thread = Worker(self.prev_proof, self.server_port_no)
+        self.alive = True
+
+    def run(self):
+        self.worker_thread.start()  # will not work on a new proof at the start, will start working for the first time after the first "gp" signal
+        poll_server_thread = threading.Thread(target=self.poll_server)
+        poll_server_thread.start()
+
+    def poll_server(self):
+        dead_server_counter = 0  # will keep the number of times the miner cannot connect to its server role
+        while self.alive:
+            time.sleep(1)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                # CONNECT TO SERVER
+                try:
+                    s.connect((HOST, int(self.server_port_no)))
+                except socket.error as e:
+                    dead_server_counter += 1
+                    if dead_server_counter > 2:
+                        # if miner cannot connect to server for 3 times, than it kills itself
+                        self.alive = False
+                        self.worker_thread.pause()
+                        exit()
+                        raise SystemExit(0)
+                    # print(f"Miner {self.port_no} error CONNECTING with server {self.server_port_no}")
+                    # print(f"ERROR {e}")
+                    continue
+
+                # REQUEST CURRENT PROOF OWNED BY SERVER
+                try:
+                    message = "gp"  # message is "get proof" request command to send to the server
+                    s.sendall(bytes(message, encoding="utf-8"))
+
+                except socket.error as e:
+                    # print(f"Miner {self.server_port_no} error SENDING REQUEST to server {self.server_port_no}")
+                    # print(f"ERROR {e}")
+                    continue
+
+                # RECEIVE PROOF FROM SERVER
+                try:
+                    received = s.recv(4096)
+                    proofs_dictionary = _pickle.loads(received)
+
+                    # The package received from the server is in the format { "prev_proof": int, "next_proof": int (-1 if server needs a next proof)}
+                    # CASES:
+                    # A) prev_proof is the same as worker_thread.working_on_proof
+                    # B) prev_proof is different from worker_thread.working_on_proof -> Happens if the server receives a block which has the proof the worker is working on
+                    # C) next_proof is a positive integer -> Server has the next proof already
+                    # D) next_proof is -1, server needs the next proof
+
+                    if proofs_dictionary["next_proof"] >= 0:  # if C
+                        self.worker_thread.pause()  # pause the worker because there's no need to compute the next proof
+                        self.worker_thread.working_on_proof = proofs_dictionary["prev_proof"]
+                    elif proofs_dictionary["next_proof"] == -1:  # if D
+                        # print(f"starting on working on a new proof. {proofs_dictionary}")
+                        # and the prev_proof if different from the one the worker is working on, make the worker work for the next proof
+                        if proofs_dictionary["prev_proof"] != self.worker_thread.working_on_proof:
+                            self.worker_thread.pause()  # pause worker
+                            self.worker_thread.working_on_proof = proofs_dictionary[
+                                "prev_proof"]  # change proof to work on
+                            self.worker_thread.activate()  # reactivate worker
+                        # if next_proof is -1 and prev_proof is equal to the one the worker is working on, do nothing and let the worker work
+                        # at the first poll_server run this is the branch that will be selected and that will activate the Worker for the first time
+                        else:
+                            self.worker_thread.activate()
+                except socket.error as e:
+                    # print(f"Miner {self.server_port_no} error RECEIVING PROOF to server {self.server_port_no}")
+                    # print(f"ERROR {e}")
+                    continue
+
+import hashlib
+import json
+
+
+def calculate_hash(data):
+    """
+    Hashes data with sha256 and returns the digest
+    :param data: Any type that is json convertible
+    :return: digest string
+    """
+    data_json = json.dumps(data, sort_keys=True)
+    data_json_encoded = data_json.encode()
+    raw_hash = hashlib.sha256(data_json_encoded)
+    digest = raw_hash.hexdigest()
+    return digest
