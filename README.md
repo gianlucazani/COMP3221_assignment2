@@ -1,6 +1,6 @@
 # COMP3221 Assignment2: Report
 <p align="center">
-  <img src="COMP3221 - assignment2@2x.png" width="450px"/>
+  <img src="https://user-images.githubusercontent.com/82953736/167800311-23bf294d-bdd0-4bf0-81af-58397d9c88e0.png" width="450px"/>
 </p>
 The assignment topic is the realization of a Blockchain simulated in a local network composed of at least three peers, each of which has three different roles: server, miner and client. The image above is the graph representation of the network. <br>
 
@@ -156,7 +156,7 @@ When a blockchain is received, it is checked if its length is greater than the o
 What we mean by _exceeding blocks_ is represented by the blue blocks in the image below:
 
 <p align="center">
-  <img src="untitled@2x (2).png" width="600px"/>
+  <img src="https://user-images.githubusercontent.com/82953736/167800755-e6b8cb69-cd56-4fa8-9b96-3357d1c6829b.png" width="600px"/>
 </p>
 
 In this case, if blocks 4 and 5 are valid, the OWNED BLOCKCHAIN will be updated with the RECEIVED BLOCKCHAIN.
