@@ -124,7 +124,7 @@ Peer terminated successfully
 ## Other commands
 The other commands, which are ```gp```, ```up``` and ```hb``` are not directly managed by the user that interacts with the peer(s), but are exchanged <i> under the hood </i> by peers. 
 
-### The ```gp``` and ```up``` command
+### The ```gp``` command
 The ```gp``` (get proof) command is exchanged by miner role and server role within the same peer and is used by the miner for asking the server its situation with proofs. In particular, in our implementation, the response to a "gp" command will be in this format:
 ```
 {
