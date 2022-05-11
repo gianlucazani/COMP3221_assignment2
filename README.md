@@ -6,7 +6,7 @@ The assignment topic is the realization of a Blockchain simulated in a local net
 
 ## Information
 
-All the feaures have been implemented by assuming prior properties of the network:
+All the features have been implemented by assuming prior properties of the network:
 
 <ul>
   <li>
@@ -22,7 +22,7 @@ All the feaures have been implemented by assuming prior properties of the networ
     The best blockchain is always the longest and where all the new blocks are valid
   </li>
   <li>
-    When a peer dies, it gets inhibited. This means that the python program will still run but the peer will be made unreachable and not able anymore to sent anything
+    When a peer dies, it gets inhibited. This means that the python program will still run but the peer will be made unreachable and not able anymore to send anything
   </li>
   <li>
     The blockchain will never get forked, all peers will always agree on the chain
@@ -31,7 +31,7 @@ All the feaures have been implemented by assuming prior properties of the networ
     The client role is the one responsible for broadcasting new transactions to all other peers
   </li>
   <li>
-    The server role is the one responsible for broadcasting the Heartbeat signal and for comparing incoming blockchain, as well as updating current blockchain if the received is longer and valid
+    The server role is the one responsible for broadcasting the Heartbeat signal and for comparing incoming blockchain, as well as updating the current blockchain if the received is longer and valid
   </li>
 </ul>
 
@@ -44,7 +44,7 @@ python 3.10.4
 ```
 ## Usage
 
-This section will explain how to use the program and see the network behaviour with respect to requirements.
+This section will explain how to use the program and see as the network behaviour satisfies requirements.
 
 ### Starting a node
 As stated in the assignment sheet, the program starts by running the following shell command:
@@ -53,7 +53,7 @@ python3 BlockchainPeer.py <Peer-id> <Port-no> <Peer-config-file>
 ```
 ### Broadcasting a new transaction (```tx``` command)
 
-Once the peer is started, it will keep asking for user input until it gets shut down. This is how the input menu looks like:
+Once the peer is started, it will keep asking for user input until it gets shut down. This is what the input menu looks like:
 
 ```
 Which action do you want to perform? (type the command)
@@ -61,7 +61,7 @@ tx) Transaction [tx|{sender}|{content}]
 pb) Print Blockchain [pb]
 cc) Close Connection [cc]
 ```
-If we want to broadcast a new transaction, we need to first type the corrispondent command (```tx```) and this will be printed:
+If we want to broadcast a new transaction, we need to first type the correspondent command (```tx```) and this will be printed:
 
 ```
 Write the transaction in the format tx|{sender}|{content}
@@ -70,10 +70,10 @@ We can now type the transaction in the specified format, for example:
 ```
 tx|gzan3055|100BTC
 ```
-The transaction will be now sent to the server role residing in the same peer and to all other peers. The server residing in the same peer will respond to client whether the transaction got accepted or rejected (```Accepted``` or ```Rejected``` will be printed by the client rispectively).
+The transaction will be now sent to the server role residing in the same peer and to all other peers. The server residing in the same peer will respond to the client whether the transaction got accepted or rejected (```Accepted``` or ```Rejected``` will be printed by the client respectively).
 
 ### Printing the Blockchain (```pb``` command)
-As a client, we are able to ask the server residing in the same peer as we do to give us the blockchain, so that then we can print it at terminal. In order to do this, when the input menu is printed:
+As a client, we can ask the server residing in the same peer as we do to give us the blockchain so that then we can print it at terminal. To do this, when the input menu is printed:
 ```
 Which action do you want to perform? (type the command)
 tx) Transaction [tx|{sender}|{content}]
@@ -106,7 +106,7 @@ Current hash: 9f0cb2d3c3447f22b193bb84976272c0449c0254096a236a27c01b6cbe657641
 Where we can both see the transaction currently in the blockchain pool (waiting to be at least five and then to be added to a new block) and the current blockchain itself, which in this case is composed of two blocks (the genesis block and another one)
 
 ### Closing connection (```cc``` command)
-The last input that a user can perform by using the client role is the closing connection. With this action we will make the peer inihibited, which makes it unreachable and not able anymore to send commands and requests. In order to kill a peer we input command ```cc``` as input:
+The last input that a user can perform by using the client role is the closing connection. With this action, we will make the peer inhibited, which makes it unreachable and not able anymore to send commands and requests. To kill a peer we input the command ```cc``` as input:
 
 ```
 Which action do you want to perform? (type the command)
@@ -115,7 +115,7 @@ pb) Print Blockchain [pb]
 cc) Close Connection [cc]
 cc
 ```
-After al the threads gets stopped and the peer closed all the connections, this message will be printed at terminal (telling that the operation was successful):
+After all, the threads get stopped and the peer closed all the connections, this message will be printed at terminal (telling that the operation was successful):
 
 ```
 Peer terminated successfully
@@ -150,7 +150,7 @@ The ```up``` (update proof) command is exchanged by miner role and server role w
 up|{next_proof}
 ```
 ### The ```hb``` command
-The ```hb``` (heartbeat) command is exchanged by server roles of the peers in the network and it used for polling other peer's blockchains. This is done in order to continuously and constantly agree on the blockchain. Every 5 seconds each peer sends to all other peers the ```hb``` command. Upone reception of this command, a peer will convert its blockchain to json and will send it back to peer who sent the ```hb```.<br><br>
+The ```hb``` (heartbeat) command is exchanged by server roles of the peers in the network and is used for polling other peers' blockchains. This is done to continuously and constantly agree on the blockchain. Every 5 seconds each peer sends to all other peers the ```hb``` command. Upon reception of this command, a peer will convert its blockchain to JSON and will send it back to the peer who sent the ```hb```.<br><br>
 
 When a blockchain is received, it is checked if its length is greater than the one I own, if it is greater than it is checked that all the _exceeding blocks_ are valid (i.e. contain only valid transactions), and if this is true then my blockchain gets updated with the received, longer, valid one.<br><br>
 What we mean by _exceeding blocks_ is represented by the blue blocks in the image below:
@@ -159,6 +159,6 @@ What we mean by _exceeding blocks_ is represented by the blue blocks in the imag
   <img src="untitled@2x (2).png" width="600px"/>
 </p>
 
-In this case if blocks 4 and 5 are valid, the OWNED BLOCKCHAIN will be updated with the RECEIVED BLOCKCHAIN.
+In this case, if blocks 4 and 5 are valid, the OWNED BLOCKCHAIN will be updated with the RECEIVED BLOCKCHAIN.
 
   
