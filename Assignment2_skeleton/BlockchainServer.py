@@ -210,6 +210,7 @@ class BlockchainServer(threading.Thread):
                 # server sends "Rejected" message to client
                 conn.sendall(b"Rejected")
         except Exception as e:
+            conn.sendall(b"Rejected")
             print(e)
 
     def return_heartbeat(self, msg, conn):

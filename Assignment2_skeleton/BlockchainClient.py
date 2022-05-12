@@ -40,49 +40,51 @@ class BlockchainClient(threading.Thread):
         """
         print("Write the transaction in the format tx|{sender}|{content}")
         transaction = input()
-
-        # BROADCAST TO MY SERVER ROLE
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            # CONNECT TO SERVER
-            try:
-                s.connect((HOST, int(self.server_port_no)))
-            except socket.error as e:
-                pass
-                # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
-                # print(f"ERROR {e}")
-
-            # SEND TRANSACTION TO SERVER
-            try:
-                s.sendall(bytes(transaction, encoding="utf-8"))
-            except socket.error as e:
-                pass
-                # print(f"Client {self.server_port_no} error SENDING TRANSACTION to server {self.server_port_no}")
-                # print(f"ERROR {e}")
-
-            # PRINT RESPONSE FROM SERVER ABOUT VALID TRANSACTION
-            try:
-                received = s.recv(4096)
-                print(received.decode("utf-8"))
-            except socket.error as e:
-                pass
-                # print(f"Client {self.server_port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
-                # print(f"ERROR {e}")
-
-        # BROADCAST TO OTHER SERVERS THE TRANSACTION
-        for ID, PORT in self.port_dict.items():
+        if transaction[0:2] == "tx":
+            # BROADCAST TO MY SERVER ROLE
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                # CONNECT TO SERVER
                 try:
-                    s.connect((HOST, int(PORT)))
+                    s.connect((HOST, int(self.server_port_no)))
                 except socket.error as e:
                     pass
-                    # print(f"error CONNECTING with PEER {ID} at PORT: {PORT}")
+                    # print(f"Client {self.server_port_no} error CONNECTING with server {self.server_port_no}")
                     # print(f"ERROR {e}")
+
+                # SEND TRANSACTION TO SERVER
                 try:
                     s.sendall(bytes(transaction, encoding="utf-8"))
                 except socket.error as e:
                     pass
-                    # print(f"error SENDING TRANSACTION with PEER {ID} at PORT: {PORT}")
+                    # print(f"Client {self.server_port_no} error SENDING TRANSACTION to server {self.server_port_no}")
                     # print(f"ERROR {e}")
+
+                # PRINT RESPONSE FROM SERVER ABOUT VALID TRANSACTION
+                try:
+                    received = s.recv(4096)
+                    print(received.decode("utf-8"))
+                except socket.error as e:
+                    pass
+                    # print(f"Client {self.server_port_no} error RECEIVING TRANSACTION VALIDATION from server {self.server_port_no}")
+                    # print(f"ERROR {e}")
+
+            # BROADCAST TO OTHER SERVERS THE TRANSACTION
+            for ID, PORT in self.port_dict.items():
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    try:
+                        s.connect((HOST, int(PORT)))
+                    except socket.error as e:
+                        pass
+                        # print(f"error CONNECTING with PEER {ID} at PORT: {PORT}")
+                        # print(f"ERROR {e}")
+                    try:
+                        s.sendall(bytes(transaction, encoding="utf-8"))
+                    except socket.error as e:
+                        pass
+                        # print(f"error SENDING TRANSACTION with PEER {ID} at PORT: {PORT}")
+                        # print(f"ERROR {e}")
+        else: 
+            print("Rejected")
 
     def print_blockchain(self):
         """
